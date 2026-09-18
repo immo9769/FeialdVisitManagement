@@ -1,0 +1,29 @@
+package com.crm.fieldvisit.repository;
+
+import com.crm.fieldvisit.entity.Employee;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface EmployeeRepository extends JpaRepository<Employee, Integer> {
+
+    Optional<Employee> findByEmail(String email);
+
+    Optional<Employee> findByEmployeeNo(String employeeNo);
+
+    @Query("SELECT e FROM Employee e WHERE e.email = :username OR e.employeeNo = :username")
+    Optional<Employee> findByEmailOrEmployeeNo(@Param("username") String username);
+
+    @Query("SELECT e FROM Employee e WHERE " +
+           "(:branchId IS NULL OR e.branchId = :branchId) AND " +
+           "(:departmentId IS NULL OR e.departmentId = :departmentId) AND " +
+           "(:search IS NULL OR LOWER(e.name) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(e.employeeNo) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(e.email) LIKE LOWER(CONCAT('%', :search, '%')))")
+    List<Employee> findAllWithFilters(@Param("branchId") Integer branchId,
+                                      @Param("departmentId") Integer departmentId,
+                                      @Param("search") String search);
+}
