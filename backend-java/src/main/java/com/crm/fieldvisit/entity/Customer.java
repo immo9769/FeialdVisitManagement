@@ -64,7 +64,7 @@ public class Customer {
     private String state;
 
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    @JsonManagedReference
+    @JsonIgnoreProperties({"customer", "hibernateLazyInitializer", "handler"})
     @Builder.Default
     private List<Contact> contacts = new ArrayList<>();
 

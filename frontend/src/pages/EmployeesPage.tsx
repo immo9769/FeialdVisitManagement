@@ -28,6 +28,8 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   FileDownload as DownloadIcon,
+  Close as CloseIcon,
+  ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -47,6 +49,7 @@ export const EmployeesPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [branchFilter, setBranchFilter] = useState<string>('');
+  const [designationFilter, setDesignationFilter] = useState<string>('');
 
   const [openModal, setOpenModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -76,7 +79,13 @@ export const EmployeesPage: React.FC = () => {
     setError(null);
     try {
       const [empRes, mastersRes]: [any, any] = await Promise.all([
-        api.get('/employees', { params: { search, branchId: branchFilter || undefined } }),
+        api.get('/employees', {
+          params: {
+            search: search || undefined,
+            branchId: branchFilter || undefined,
+            designationId: designationFilter || undefined,
+          },
+        }),
         api.get('/masters/summary'),
       ]);
       setEmployees(empRes);
@@ -92,14 +101,13 @@ export const EmployeesPage: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-  }, [branchFilter]);
+  }, [branchFilter, designationFilter]);
 
   const handleOpenAddModal = () => {
     setEditingId(null);
-    const nextEmpNo = (1000 + employees.length + 1).toString();
     setFormData({
       ...defaultFormData,
-      employeeNo: nextEmpNo,
+      employeeNo: '',
       departmentId: departments[0]?.id || 1,
       designationId: designations[0]?.id || 1,
       branchId: branches[0]?.id || 1,
@@ -153,7 +161,7 @@ export const EmployeesPage: React.FC = () => {
     if (!deleteId) return;
     try {
       await api.delete(`/employees/${deleteId}`);
-      showToast('Employee record deleted successfully', 'info');
+      showToast('Employee deactivated successfully (status set to Inactive)', 'info');
       setDeleteId(null);
       fetchData();
     } catch (err: any) {
@@ -181,319 +189,394 @@ export const EmployeesPage: React.FC = () => {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box>
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>
-            Employees Directory
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Manage field sales executives, service engineers, branch managers, and security roles
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 1.5 }}>
-          <Button variant="outlined" startIcon={<DownloadIcon />} onClick={handleExportCsv}>
-            Export CSV
-          </Button>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAddModal}>
-            + Add Employee
-          </Button>
-        </Box>
-      </Box>
-
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-
-      <Card sx={{ p: 2, mb: 3 }}>
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-          <TextField
-            size="small"
-            placeholder="Search name, code, email..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            sx={{ minWidth: 260 }}
-            InputProps={{
-              startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />,
-            }}
-          />
-          <TextField
-            select
-            size="small"
-            label="Branch"
-            value={branchFilter}
-            onChange={(e) => setBranchFilter(e.target.value)}
-            sx={{ minWidth: 200 }}
-          >
-            <MenuItem value="">All Branches</MenuItem>
-            {branches.map((b) => (
-              <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>
-            ))}
-          </TextField>
-          <Button variant="contained" onClick={fetchData}>
-            Search
-          </Button>
-        </Box>
-      </Card>
-
-      <Card>
-        {loading ? (
-          <Box sx={{ p: 4, textAlign: 'center' }}>
-            <CircularProgress />
+      {!openModal && (
+        <>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Box>
+              <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                Employees Directory
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Manage field sales executives, service engineers, branch managers, and security roles
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1.5 }}>
+              <Button variant="outlined" startIcon={<DownloadIcon />} onClick={handleExportCsv}>
+                Export CSV
+              </Button>
+              <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAddModal}>
+                Add Employee
+              </Button>
+            </Box>
           </Box>
-        ) : (
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Emp #</TableCell>
-                <TableCell>Employee Name</TableCell>
-                <TableCell>Gender</TableCell>
-                <TableCell>Department</TableCell>
-                <TableCell>Designation</TableCell>
-                <TableCell>Branch</TableCell>
-                <TableCell>Grade</TableCell>
-                <TableCell>Role</TableCell>
-                <TableCell>Mobile No</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="center">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {employees.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={11} align="center" sx={{ py: 3, color: 'text.secondary' }}>
-                    No employee records found.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                employees.map((emp) => (
-                  <TableRow key={emp.id} hover>
-                    <TableCell sx={{ fontWeight: 600 }}>{emp.employeeNo}</TableCell>
-                    <TableCell sx={{ fontWeight: 500 }}>{emp.name}</TableCell>
-                    <TableCell>{emp.gender}</TableCell>
-                    <TableCell>{emp.department?.name || '-'}</TableCell>
-                    <TableCell>{emp.designation?.title || '-'}</TableCell>
-                    <TableCell>{emp.branch?.name || '-'}</TableCell>
-                    <TableCell>
-                      <Chip label={(emp.grade || 'GRADE_B').replace('_', ' ').replace('GRADE', 'Grade')} size="small" color="secondary" variant="filled" sx={{ fontWeight: 700 }} />
-                    </TableCell>
-                    <TableCell>
-                      <Chip label={emp.role} size="small" color="primary" variant="outlined" />
-                    </TableCell>
-                    <TableCell>{emp.mobileNo}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={emp.status}
-                        color={emp.status === 'Active' ? 'success' : 'default'}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      <Tooltip title="Edit Employee">
-                        <IconButton size="small" color="primary" onClick={() => handleOpenEditModal(emp)}>
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Delete Employee">
-                        <IconButton size="small" color="error" onClick={() => setDeleteId(emp.id)}>
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        )}
-      </Card>
 
-      {/* Add / Edit Employee Dialog */}
-      <Dialog open={openModal} onClose={() => setOpenModal(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>
-          {editingId ? 'Edit Employee Profile' : 'Add New Employee'}
-        </DialogTitle>
-        <DialogContent dividers>
-          <Grid container spacing={2} sx={{ pt: 1 }}>
-            <Grid item xs={12} sm={4}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Employee No *"
-                value={formData.employeeNo}
-                onChange={(e) => setFormData({ ...formData, employeeNo: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12} sm={5}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Full Name *"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12} sm={3}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                label="Gender *"
-                value={formData.gender}
-                onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-              >
-                <MenuItem value="Male">Male</MenuItem>
-                <MenuItem value="Female">Female</MenuItem>
-                <MenuItem value="Other">Other</MenuItem>
-              </TextField>
-            </Grid>
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-            <Grid item xs={12} sm={4}>
+          <Card sx={{ p: 2, mb: 3 }}>
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
               <TextField
-                fullWidth
                 size="small"
-                type="date"
-                label="Date of Birth"
-                InputLabelProps={{ shrink: true }}
-                value={formData.dob}
-                onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                placeholder="Search name, code, email..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                sx={{ minWidth: 260 }}
+                InputProps={{
+                  startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />,
+                }}
               />
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <TextField
-                fullWidth
-                size="small"
-                type="date"
-                label="Joining Date *"
-                InputLabelProps={{ shrink: true }}
-                value={formData.joiningDate}
-                onChange={(e) => setFormData({ ...formData, joiningDate: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12} sm={4}>
               <TextField
                 select
-                fullWidth
                 size="small"
-                label="Employee Grade *"
-                value={formData.grade}
-                onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
+                label="Branch"
+                value={branchFilter}
+                onChange={(e) => setBranchFilter(e.target.value)}
+                sx={{ minWidth: 180 }}
               >
-                <MenuItem value="GRADE_A">Grade A</MenuItem>
-                <MenuItem value="GRADE_B">Grade B</MenuItem>
-                <MenuItem value="GRADE_C">Grade C</MenuItem>
-                <MenuItem value="GRADE_D">Grade D</MenuItem>
-              </TextField>
-            </Grid>
-
-            <Grid item xs={12} sm={4}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                label="Department *"
-                value={formData.departmentId}
-                onChange={(e) => setFormData({ ...formData, departmentId: Number(e.target.value) })}
-              >
-                {departments.map((d) => (
-                  <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                label="Designation *"
-                value={formData.designationId}
-                onChange={(e) => setFormData({ ...formData, designationId: Number(e.target.value) })}
-              >
-                {designations.map((d) => (
-                  <MenuItem key={d.id} value={d.id}>{d.title}</MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                label="Branch *"
-                value={formData.branchId}
-                onChange={(e) => setFormData({ ...formData, branchId: Number(e.target.value) })}
-              >
+                <MenuItem value="">All Branches</MenuItem>
                 {branches.map((b) => (
                   <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>
                 ))}
               </TextField>
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Mobile No *"
-                value={formData.mobileNo}
-                onChange={(e) => setFormData({ ...formData, mobileNo: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Email Address *"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={4}>
               <TextField
                 select
-                fullWidth
                 size="small"
-                label="Security Role *"
-                value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                label="Designation"
+                value={designationFilter}
+                onChange={(e) => setDesignationFilter(e.target.value)}
+                sx={{ minWidth: 200 }}
               >
-                <MenuItem value="ADMIN">System Administrator (ADMIN)</MenuItem>
-                <MenuItem value="MANAGER">Branch Manager (MANAGER)</MenuItem>
-                <MenuItem value="SALES_EXEC">Sales Executive (SALES_EXEC)</MenuItem>
-                <MenuItem value="SERVICE_ENG">Service Engineer (SERVICE_ENG)</MenuItem>
+                <MenuItem value="">All Designations</MenuItem>
+                {designations.map((d) => (
+                  <MenuItem key={d.id} value={d.title}>{d.title}</MenuItem>
+                ))}
               </TextField>
-            </Grid>
+              <Button variant="contained" onClick={fetchData}>
+                Search
+              </Button>
+              {(search || branchFilter || designationFilter) && (
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  onClick={() => {
+                    setSearch('');
+                    setBranchFilter('');
+                    setDesignationFilter('');
+                  }}
+                >
+                  Reset
+                </Button>
+              )}
+            </Box>
+          </Card>
 
-            <Grid item xs={12} sm={4}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                label="Status *"
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+          <Card>
+            {loading ? (
+              <Box sx={{ p: 4, textAlign: 'center' }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Emp #</TableCell>
+                    <TableCell>Employee Name</TableCell>
+                    <TableCell>Gender</TableCell>
+                    <TableCell>Department</TableCell>
+                    <TableCell>Designation</TableCell>
+                    <TableCell>Branch</TableCell>
+                    <TableCell>Grade</TableCell>
+                    <TableCell>Role</TableCell>
+                    <TableCell>Mobile No</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell align="center">Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {employees.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={11} align="center" sx={{ py: 3, color: 'text.secondary' }}>
+                        No employee records found.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    employees.map((emp) => (
+                      <TableRow key={emp.id} hover>
+                        <TableCell sx={{ fontWeight: 600 }}>{emp.employeeNo}</TableCell>
+                        <TableCell sx={{ fontWeight: 500 }}>{emp.name}</TableCell>
+                        <TableCell>{emp.gender}</TableCell>
+                        <TableCell>{emp.department?.name || '-'}</TableCell>
+                        <TableCell>{emp.designation?.title || '-'}</TableCell>
+                        <TableCell>{emp.branch?.name || '-'}</TableCell>
+                        <TableCell>
+                          <Chip label={(emp.grade || 'GRADE_B').replace('_', ' ').replace('GRADE', 'Grade')} size="small" color="secondary" variant="filled" sx={{ fontWeight: 700 }} />
+                        </TableCell>
+                        <TableCell>
+                          <Chip label={emp.role} size="small" color="primary" variant="outlined" />
+                        </TableCell>
+                        <TableCell>{emp.mobileNo}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={emp.status}
+                            color={emp.status === 'Active' ? 'success' : 'default'}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell align="center">
+                          <Tooltip title="Edit Employee">
+                            <IconButton size="small" color="primary" onClick={() => handleOpenEditModal(emp)}>
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Delete Employee">
+                            <IconButton size="small" color="error" onClick={() => setDeleteId(emp.id)}>
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </Card>
+        </>
+      )}
+
+      {/* IN-PAGE CREATE / EDIT EMPLOYEE FORM */}
+      {openModal && (
+        <Box sx={{ mb: 4 }}>
+          {/* Top Bar with Back Button and Actions */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Button
+                variant="outlined"
+                startIcon={<ArrowBackIcon />}
+                onClick={() => setOpenModal(false)}
+                sx={{ textTransform: 'none' }}
               >
-                <MenuItem value="Active">Active</MenuItem>
-                <MenuItem value="Inactive">Inactive</MenuItem>
-              </TextField>
-            </Grid>
+                Back to Employees
+              </Button>
+              <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                {editingId ? 'Edit Employee Profile' : 'Add New Employee'}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1.5 }}>
+              <Button variant="outlined" onClick={() => setOpenModal(false)}>
+                Cancel
+              </Button>
+              <Button variant="contained" color="primary" onClick={handleSaveEmployee}>
+                {editingId ? 'Update Employee' : 'Save Employee'}
+              </Button>
+            </Box>
+          </Box>
 
-            <Grid item xs={12} sm={4}>
-              <TextField
-                fullWidth
-                size="small"
-                type="password"
-                label={editingId ? 'Password (Leave blank to keep existing)' : 'Password *'}
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              />
+          {/* Card 1: Personal & Contact Information */}
+          <Card sx={{ p: 3, mb: 3 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'primary.main', mb: 2 }}>
+              1. Personal & Contact Information
+            </Typography>
+            <Grid container spacing={2.5}>
+              {editingId && (
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    disabled
+                    label="Employee No"
+                    value={formData.employeeNo}
+                    helperText="Auto-generated (Read-only)"
+                  />
+                </Grid>
+              )}
+              <Grid item xs={12} md={editingId ? 6 : 12}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Full Name *"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label="Gender *"
+                  value={formData.gender}
+                  onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                >
+                  <MenuItem value="Male">Male</MenuItem>
+                  <MenuItem value="Female">Female</MenuItem>
+                  <MenuItem value="Other">Other</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  type="date"
+                  label="Date of Birth"
+                  InputLabelProps={{ shrink: true }}
+                  value={formData.dob}
+                  onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  type="date"
+                  label="Joining Date *"
+                  InputLabelProps={{ shrink: true }}
+                  value={formData.joiningDate}
+                  onChange={(e) => setFormData({ ...formData, joiningDate: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Mobile No *"
+                  value={formData.mobileNo}
+                  onChange={(e) => setFormData({ ...formData, mobileNo: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={12} md={12}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Email Address *"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+              </Grid>
             </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setOpenModal(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSaveEmployee}>
-            {editingId ? 'UPDATE EMPLOYEE' : 'SAVE EMPLOYEE'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+          </Card>
+
+          {/* Card 2: Department, Branch & Classification */}
+          <Card sx={{ p: 3, mb: 3 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'primary.main', mb: 2 }}>
+              2. Department, Branch & Classification
+            </Typography>
+            <Grid container spacing={2.5}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label="Department *"
+                  value={formData.departmentId}
+                  onChange={(e) => setFormData({ ...formData, departmentId: Number(e.target.value) })}
+                >
+                  {departments.map((d) => (
+                    <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label="Designation *"
+                  value={formData.designationId}
+                  onChange={(e) => setFormData({ ...formData, designationId: Number(e.target.value) })}
+                >
+                  {designations.map((d) => (
+                    <MenuItem key={d.id} value={d.id}>{d.title}</MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label="Branch *"
+                  value={formData.branchId}
+                  onChange={(e) => setFormData({ ...formData, branchId: Number(e.target.value) })}
+                >
+                  {branches.map((b) => (
+                    <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label="Employee Grade *"
+                  value={formData.grade}
+                  onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
+                >
+                  <MenuItem value="GRADE_A">Grade A</MenuItem>
+                  <MenuItem value="GRADE_B">Grade B</MenuItem>
+                  <MenuItem value="GRADE_C">Grade C</MenuItem>
+                  <MenuItem value="GRADE_D">Grade D</MenuItem>
+                </TextField>
+              </Grid>
+            </Grid>
+          </Card>
+
+          {/* Card 3: Security Role & Credentials */}
+          <Card sx={{ p: 3, mb: 3 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'primary.main', mb: 2 }}>
+              3. Security Role & System Credentials
+            </Typography>
+            <Grid container spacing={2.5}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label="Security Role *"
+                  value={formData.role}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                >
+                  <MenuItem value="ADMIN">System Administrator (ADMIN)</MenuItem>
+                  <MenuItem value="MANAGER">Branch Manager (MANAGER)</MenuItem>
+                  <MenuItem value="SALES_EXEC">Sales Executive (SALES_EXEC)</MenuItem>
+                  <MenuItem value="SERVICE_ENG">Service Engineer (SERVICE_ENG)</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label="Status *"
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                >
+                  <MenuItem value="Active">Active</MenuItem>
+                  <MenuItem value="Inactive">Inactive</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  type="password"
+                  label={editingId ? 'Password (Leave blank to keep existing password)' : 'Account Password *'}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                />
+              </Grid>
+            </Grid>
+          </Card>
+
+          {/* Bottom Sticky Action Bar */}
+          <Box sx={{ p: 2.5, display: 'flex', justifyContent: 'space-between', bgcolor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 2 }}>
+            <Button onClick={() => setOpenModal(false)}>Cancel</Button>
+            <Button variant="contained" color="primary" onClick={handleSaveEmployee}>
+              {editingId ? 'UPDATE EMPLOYEE' : 'SAVE EMPLOYEE'}
+            </Button>
+          </Box>
+        </Box>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={Boolean(deleteId)} onClose={() => setDeleteId(null)} maxWidth="xs" fullWidth>

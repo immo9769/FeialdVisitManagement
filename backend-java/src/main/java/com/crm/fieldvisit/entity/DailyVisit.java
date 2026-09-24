@@ -102,6 +102,12 @@ public class DailyVisit {
     @Column(name = "rejection_reason", columnDefinition = "NVARCHAR(MAX)")
     private String rejectionReason;
 
+    @Column(name = "sales_report_url", length = 550)
+    private String salesReportUrl;
+
+    @Column(name = "sales_report_notes", columnDefinition = "NVARCHAR(MAX)")
+    private String salesReportNotes;
+
     @Column(name = "approved_by")
     private Integer approvedBy;
 

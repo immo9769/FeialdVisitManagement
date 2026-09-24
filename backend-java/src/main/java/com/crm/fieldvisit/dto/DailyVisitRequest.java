@@ -55,6 +55,8 @@ public class DailyVisitRequest {
     private String status = "DRAFT";
 
     private String rejectionReason;
+    private String salesReportUrl;
+    private String salesReportNotes;
 
     private List<VisitExpenseRequest> expenses;
     private List<VisitCustomerRequest> extensibleCustomers;

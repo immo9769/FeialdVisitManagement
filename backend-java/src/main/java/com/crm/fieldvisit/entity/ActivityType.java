@@ -31,6 +31,10 @@ public class ActivityType {
     @Column(columnDefinition = "NVARCHAR(MAX)")
     private String description;
 
+    @Column(length = 50)
+    @Builder.Default
+    private String role = "ALL";
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

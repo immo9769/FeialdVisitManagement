@@ -21,4 +21,5 @@ public class MastersSummaryResponse {
     private List<ExpenseHead> expenseHeads;
     private List<GradeFuelRate> gradeFuelRates;
     private List<Industry> industries;
+    private List<Principal> principals;
 }

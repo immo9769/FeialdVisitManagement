@@ -67,6 +67,7 @@ const TAB_TYPES = [
   'expense-heads',
   'grade-fuel-rates',
   'industries',
+  'principals',
 ];
 
 export const MastersPage: React.FC = () => {
@@ -94,6 +95,13 @@ export const MastersPage: React.FC = () => {
     gradeCode: '',
     gradeName: '',
     fuelRate: 10.35,
+    principal: '',
+    country: '',
+    contactPerson: '',
+    contactEmail: '',
+    contactPhone: '',
+    role: 'ALL',
+    unitPrice: 0,
     isActive: true,
   };
 
@@ -110,7 +118,7 @@ export const MastersPage: React.FC = () => {
       setData(mastersRes);
       setEmployees(empRes || []);
     } catch (err: any) {
-      setError(err || 'Failed to load master records');
+      setError(err || 'Failed to load master tables');
     } finally {
       setLoading(false);
     }
@@ -145,6 +153,13 @@ export const MastersPage: React.FC = () => {
       gradeCode: item.gradeCode || '',
       gradeName: item.gradeName || '',
       fuelRate: item.fuelRate || 10.35,
+      principal: item.principal || '',
+      country: item.country || '',
+      contactPerson: item.contactPerson || '',
+      contactEmail: item.contactEmail || '',
+      contactPhone: item.contactPhone || '',
+      role: item.role || 'ALL',
+      unitPrice: item.unitPrice || 0,
       isActive: item.isActive !== undefined ? item.isActive : true,
     });
     setOpenModal(true);
@@ -186,6 +201,7 @@ export const MastersPage: React.FC = () => {
     if (tabValue === 5) list = data.expenseHeads || [];
     if (tabValue === 6) list = data.gradeFuelRates || [];
     if (tabValue === 7) list = data.industries || [];
+    if (tabValue === 8) list = data.principals || [];
 
     exportToCsv(`Master_${activeType}_Export_${new Date().toISOString().split('T')[0]}.csv`, list);
   };
@@ -206,7 +222,7 @@ export const MastersPage: React.FC = () => {
             Master Data Management (MDM)
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Configure global branches, products catalog, activity categories, expense heads, grade fuel rates, and industry segments
+            Configure global branches, products catalog, OEM principals, activity categories, expense heads, grade fuel rates, and industry segments
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1.5 }}>
@@ -214,7 +230,7 @@ export const MastersPage: React.FC = () => {
             Export CSV
           </Button>
           <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAddModal}>
-            + Add Master Item
+            Add Master Item
           </Button>
         </Box>
       </Box>
@@ -232,6 +248,7 @@ export const MastersPage: React.FC = () => {
             <Tab label={`Expense Heads (${data.expenseHeads?.length || 0})`} />
             <Tab icon={<FuelIcon sx={{ fontSize: 18 }} />} iconPosition="start" label={`Grade Fuel Rates (${data.gradeFuelRates?.length || 0})`} />
             <Tab label={`Industries (${data.industries?.length || 0})`} />
+            <Tab label={`Principals / OEM Brands (${data.principals?.length || 0})`} />
           </Tabs>
         </Box>
 
@@ -351,7 +368,10 @@ export const MastersPage: React.FC = () => {
               <TableRow>
                 <TableCell>Code</TableCell>
                 <TableCell>Machine Product Name</TableCell>
+                <TableCell>Principal</TableCell>
+                <TableCell>Target Role</TableCell>
                 <TableCell>Category</TableCell>
+                <TableCell>Unit Price (₹)</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell align="center">Actions</TableCell>
               </TableRow>
@@ -361,7 +381,16 @@ export const MastersPage: React.FC = () => {
                 <TableRow key={row.id} hover>
                   <TableCell sx={{ fontWeight: 600 }}>{row.code}</TableCell>
                   <TableCell sx={{ fontWeight: 500 }}>{row.name}</TableCell>
-                  <TableCell><Chip label={row.category || 'General'} size="small" color="info" variant="outlined" /></TableCell>
+                  <TableCell><Chip label={row.principal || 'General'} size="small" variant="outlined" /></TableCell>
+                  <TableCell>
+                    <Chip
+                      label={row.role === 'SALES_EXEC' ? 'Sales' : row.role === 'SERVICE_ENG' ? 'Service' : 'All Roles'}
+                      size="small"
+                      color={row.role === 'SALES_EXEC' ? 'warning' : row.role === 'SERVICE_ENG' ? 'info' : 'default'}
+                    />
+                  </TableCell>
+                  <TableCell><Chip label={row.category || 'General'} size="small" color="secondary" variant="outlined" /></TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>₹{(Number(row.unitPrice) || 0).toLocaleString('en-IN')}</TableCell>
                   <TableCell>
                     <Chip label={row.isActive ? 'Active' : 'Inactive'} color={row.isActive ? 'success' : 'default'} size="small" />
                   </TableCell>
@@ -390,6 +419,7 @@ export const MastersPage: React.FC = () => {
               <TableRow>
                 <TableCell>Code</TableCell>
                 <TableCell>Activity Name</TableCell>
+                <TableCell>Target Role</TableCell>
                 <TableCell>Description</TableCell>
                 <TableCell align="center">Actions</TableCell>
               </TableRow>
@@ -399,6 +429,13 @@ export const MastersPage: React.FC = () => {
                 <TableRow key={row.id} hover>
                   <TableCell sx={{ fontWeight: 600 }}>{row.code}</TableCell>
                   <TableCell sx={{ fontWeight: 500 }}>{row.name}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={row.role === 'SALES_EXEC' ? 'Sales' : row.role === 'SERVICE_ENG' ? 'Service' : 'All Roles'}
+                      size="small"
+                      color={row.role === 'SALES_EXEC' ? 'warning' : row.role === 'SERVICE_ENG' ? 'info' : 'default'}
+                    />
+                  </TableCell>
                   <TableCell>{row.description || '-'}</TableCell>
                   <TableCell align="center">
                     <Tooltip title="Edit Activity Type">
@@ -544,6 +581,53 @@ export const MastersPage: React.FC = () => {
             </TableBody>
           </Table>
         </CustomTabPanel>
+
+        {/* Principals / OEM Brands Master Panel */}
+        <CustomTabPanel value={tabValue} index={8}>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Code</TableCell>
+                <TableCell>Principal / OEM Name</TableCell>
+                <TableCell>Country / Origin</TableCell>
+                <TableCell>Contact Person</TableCell>
+                <TableCell>Contact Email</TableCell>
+                <TableCell>Contact Phone</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell align="center">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {data.principals?.map((row: any) => (
+                <TableRow key={row.id} hover>
+                  <TableCell sx={{ fontWeight: 600 }}>{row.code}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: 'primary.main' }}>{row.name}</TableCell>
+                  <TableCell>
+                    <Chip label={row.country || 'Global'} size="small" variant="outlined" />
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 500 }}>{row.contactPerson || '-'}</TableCell>
+                  <TableCell>{row.contactEmail || '-'}</TableCell>
+                  <TableCell>{row.contactPhone || '-'}</TableCell>
+                  <TableCell>
+                    <Chip label={row.isActive ? 'Active' : 'Inactive'} color={row.isActive ? 'success' : 'default'} size="small" />
+                  </TableCell>
+                  <TableCell align="center">
+                    <Tooltip title="Edit Principal">
+                      <IconButton size="small" color="primary" onClick={() => handleOpenEditModal(row)}>
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete Principal">
+                      <IconButton size="small" color="error" onClick={() => setDeleteItem(row)}>
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CustomTabPanel>
       </Card>
 
       {/* Add / Edit Master Dialog */}
@@ -559,9 +643,11 @@ export const MastersPage: React.FC = () => {
                   <TextField
                     fullWidth
                     size="small"
+                    disabled={Boolean(editingItem)}
                     label="Grade Code (e.g. GRADE_A) *"
                     value={formData.gradeCode}
                     onChange={(e) => setFormData({ ...formData, gradeCode: e.target.value })}
+                    helperText={editingItem ? 'Grade code cannot be changed' : ''}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -590,9 +676,11 @@ export const MastersPage: React.FC = () => {
                   <TextField
                     fullWidth
                     size="small"
+                    disabled={Boolean(editingItem)}
                     label="Master Code *"
                     value={formData.code}
                     onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                    helperText={editingItem ? 'Master code cannot be changed' : ''}
                   />
                 </Grid>
                 {tabValue === 2 ? (
@@ -647,24 +735,139 @@ export const MastersPage: React.FC = () => {
                 )}
 
                 {tabValue === 3 && (
+                  <>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        select
+                        fullWidth
+                        size="small"
+                        label="Category"
+                        value={formData.category}
+                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      >
+                        <MenuItem value="Machinery">Machinery (Capital)</MenuItem>
+                        <MenuItem value="Spare Parts">Spare Parts</MenuItem>
+                        <MenuItem value="Tooling">Tooling</MenuItem>
+                        <MenuItem value="Automation">Automation</MenuItem>
+                        <MenuItem value="Electronics">Electronics</MenuItem>
+                        <MenuItem value="Services">Services / AMC</MenuItem>
+                        <MenuItem value="Accessories">Accessories</MenuItem>
+                        <MenuItem value="General">General</MenuItem>
+                      </TextField>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        select
+                        fullWidth
+                        size="small"
+                        label="Principal / OEM Brand"
+                        value={formData.principal}
+                        onChange={(e) => setFormData({ ...formData, principal: e.target.value })}
+                      >
+                        <MenuItem value="">-- Select Principal --</MenuItem>
+                        {data.principals?.map((p: any) => (
+                          <MenuItem key={p.id} value={p.name}>{p.name} ({p.country || 'Global'})</MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        select
+                        fullWidth
+                        size="small"
+                        label="Accessible Role"
+                        value={formData.role}
+                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                      >
+                        <MenuItem value="ALL">All Roles (Sales & Service)</MenuItem>
+                        <MenuItem value="SALES_EXEC">Sales Executives Only</MenuItem>
+                        <MenuItem value="SERVICE_ENG">Service Engineers Only</MenuItem>
+                      </TextField>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        type="number"
+                        label="Default Unit Price (₹)"
+                        value={formData.unitPrice}
+                        onChange={(e) => setFormData({ ...formData, unitPrice: Number(e.target.value) })}
+                      />
+                    </Grid>
+                  </>
+                )}
+
+                {tabValue === 4 && (
                   <Grid item xs={12} sm={6}>
                     <TextField
                       select
                       fullWidth
                       size="small"
-                      label="Category"
-                      value={formData.category}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      label="Accessible Role"
+                      value={formData.role}
+                      onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                     >
-                      <MenuItem value="VMC">VMC</MenuItem>
-                      <MenuItem value="HMC">HMC</MenuItem>
-                      <MenuItem value="Turning">Turning Center</MenuItem>
-                      <MenuItem value="Lathe">Lathe</MenuItem>
-                      <MenuItem value="Milling">Milling</MenuItem>
-                      <MenuItem value="Multi-Axis">Multi-Axis</MenuItem>
-                      <MenuItem value="General">General</MenuItem>
+                      <MenuItem value="ALL">All Roles (General)</MenuItem>
+                      <MenuItem value="SALES_EXEC">Sales Executives Only</MenuItem>
+                      <MenuItem value="SERVICE_ENG">Service Engineers Only</MenuItem>
                     </TextField>
                   </Grid>
+                )}
+
+                {tabValue === 8 && (
+                  <>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Country / Origin"
+                        value={formData.country}
+                        onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                        placeholder="e.g. Germany, Japan, USA"
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Contact Person"
+                        value={formData.contactPerson}
+                        onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
+                        placeholder="e.g. Regional Director"
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Contact Email"
+                        type="email"
+                        value={formData.contactEmail}
+                        onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Contact Phone"
+                        value={formData.contactPhone}
+                        onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        multiline
+                        rows={2}
+                        label="Description / OEM Profile"
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        placeholder="Details of machinery, product lines, and specialization"
+                      />
+                    </Grid>
+                  </>
                 )}
               </>
             )}

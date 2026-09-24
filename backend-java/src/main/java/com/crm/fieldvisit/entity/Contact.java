@@ -28,7 +28,7 @@ public class Contact {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", insertable = false, updatable = false)
-    @JsonBackReference
+    @JsonIgnoreProperties({"contacts", "hibernateLazyInitializer", "handler"})
     private Customer customer;
 
     @Column(name = "contact_name", nullable = false, length = 150)

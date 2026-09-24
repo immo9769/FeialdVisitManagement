@@ -19,9 +19,9 @@ public class EmployeeService {
     private final PasswordEncoder passwordEncoder;
 
     @Transactional(readOnly = true)
-    public List<Employee> findAll(Integer branchId, Integer departmentId, String search) {
+    public List<Employee> findAll(Integer branchId, Integer departmentId, Integer designationId, String search) {
         String s = (search != null && !search.isBlank()) ? search.trim() : null;
-        return employeeRepository.findAllWithFilters(branchId, departmentId, s);
+        return employeeRepository.findAllWithFilters(branchId, departmentId, designationId, s);
     }
 
     @Transactional(readOnly = true)
@@ -32,12 +32,18 @@ public class EmployeeService {
 
     @Transactional
     public Employee create(CreateEmployeeRequest request) {
+        String empNo = request.getEmployeeNo();
+        if (empNo == null || empNo.isBlank()) {
+            long count = employeeRepository.count();
+            empNo = String.format("%04d", 1000 + count + 1);
+        }
+
         String rawPassword = (request.getPassword() != null && !request.getPassword().isBlank()) 
                 ? request.getPassword() 
                 : "Password@123";
 
         Employee employee = Employee.builder()
-                .employeeNo(request.getEmployeeNo())
+                .employeeNo(empNo)
                 .name(request.getName())
                 .gender(request.getGender() != null ? request.getGender() : "Male")
                 .dob(request.getDob())
@@ -85,7 +91,8 @@ public class EmployeeService {
     @Transactional
     public boolean remove(Integer id) {
         Employee emp = findOne(id);
-        employeeRepository.delete(emp);
+        emp.setStatus("Inactive");
+        employeeRepository.save(emp);
         return true;
     }
 }

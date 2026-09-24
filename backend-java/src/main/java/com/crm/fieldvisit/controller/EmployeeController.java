@@ -25,13 +25,14 @@ public class EmployeeController {
 
     private final EmployeeService employeeService;
 
-    @Operation(summary = "List all employees with optional branch/dept filters")
+    @Operation(summary = "List all employees with optional branch/dept/designation filters")
     @GetMapping
     public ResponseEntity<ApiResponse<List<Employee>>> findAll(
             @RequestParam(name = "branchId", required = false) Integer branchId,
             @RequestParam(name = "departmentId", required = false) Integer departmentId,
+            @RequestParam(name = "designationId", required = false) Integer designationId,
             @RequestParam(name = "search", required = false) String search) {
-        return ResponseEntity.ok(ApiResponse.success(employeeService.findAll(branchId, departmentId, search)));
+        return ResponseEntity.ok(ApiResponse.success(employeeService.findAll(branchId, departmentId, designationId, search)));
     }
 
     @Operation(summary = "Get employee details by ID")

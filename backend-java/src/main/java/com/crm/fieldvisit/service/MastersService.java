@@ -24,6 +24,7 @@ public class MastersService {
     private final ExpenseHeadRepository expenseHeadRepository;
     private final GradeFuelRateRepository gradeFuelRateRepository;
     private final IndustryRepository industryRepository;
+    private final PrincipalRepository principalRepository;
 
     @Transactional(readOnly = true)
     public MastersSummaryResponse getAllMastersSummary() {
@@ -36,8 +37,12 @@ public class MastersService {
                 .expenseHeads(expenseHeadRepository.findAll())
                 .gradeFuelRates(gradeFuelRateRepository.findAll())
                 .industries(industryRepository.findAll())
+                .principals(principalRepository.findAllByOrderByNameAsc())
                 .build();
     }
+
+    public List<Principal> getAllPrincipals() { return principalRepository.findAllByOrderByNameAsc(); }
+    public Principal createPrincipal(Principal principal) { return principalRepository.save(principal); }
 
     public List<Branch> getAllBranches() { return branchRepository.findAll(); }
     public Branch createBranch(Branch branch) { return branchRepository.save(branch); }
@@ -90,11 +95,15 @@ public class MastersService {
                 yield designationRepository.save(desg);
             }
             case "products" -> {
+                BigDecimal unitPrice = body.get("unitPrice") != null ? new BigDecimal(body.get("unitPrice").toString()) : BigDecimal.ZERO;
                 Product p = Product.builder()
                         .code((String) body.get("code"))
                         .name((String) body.get("name"))
                         .description((String) body.get("description"))
                         .category(body.get("category") != null ? body.get("category").toString() : "Machinery")
+                        .principal(body.get("principal") != null ? body.get("principal").toString() : null)
+                        .role(body.get("role") != null ? body.get("role").toString() : "ALL")
+                        .unitPrice(unitPrice)
                         .isActive(body.get("isActive") != null ? Boolean.parseBoolean(body.get("isActive").toString()) : true)
                         .build();
                 yield productRepository.save(p);
@@ -104,6 +113,7 @@ public class MastersService {
                         .code((String) body.get("code"))
                         .name((String) body.get("name"))
                         .description((String) body.get("description"))
+                        .role(body.get("role") != null ? body.get("role").toString() : "ALL")
                         .build();
                 yield activityTypeRepository.save(a);
             }
@@ -138,6 +148,19 @@ public class MastersService {
                         .build();
                 yield industryRepository.save(ind);
             }
+            case "principals" -> {
+                Principal pr = Principal.builder()
+                        .code((String) body.get("code"))
+                        .name((String) body.get("name"))
+                        .country((String) body.get("country"))
+                        .contactPerson((String) body.get("contactPerson"))
+                        .contactEmail((String) body.get("contactEmail"))
+                        .contactPhone((String) body.get("contactPhone"))
+                        .description((String) body.get("description"))
+                        .isActive(body.get("isActive") != null ? Boolean.parseBoolean(body.get("isActive").toString()) : true)
+                        .build();
+                yield principalRepository.save(pr);
+            }
             default -> throw new IllegalArgumentException("Unknown master type: " + type);
         };
     }
@@ -171,6 +194,9 @@ public class MastersService {
                 if (body.containsKey("name")) p.setName((String) body.get("name"));
                 if (body.containsKey("description")) p.setDescription((String) body.get("description"));
                 if (body.containsKey("category")) p.setCategory((String) body.get("category"));
+                if (body.containsKey("principal")) p.setPrincipal((String) body.get("principal"));
+                if (body.containsKey("role")) p.setRole((String) body.get("role"));
+                if (body.containsKey("unitPrice")) p.setUnitPrice(body.get("unitPrice") != null ? new BigDecimal(body.get("unitPrice").toString()) : null);
                 if (body.containsKey("isActive")) p.setIsActive(Boolean.parseBoolean(body.get("isActive").toString()));
                 yield productRepository.save(p);
             }
@@ -179,6 +205,7 @@ public class MastersService {
                 if (body.containsKey("code")) a.setCode((String) body.get("code"));
                 if (body.containsKey("name")) a.setName((String) body.get("name"));
                 if (body.containsKey("description")) a.setDescription((String) body.get("description"));
+                if (body.containsKey("role")) a.setRole((String) body.get("role"));
                 yield activityTypeRepository.save(a);
             }
             case "expense-heads" -> {
@@ -207,6 +234,18 @@ public class MastersService {
                 if (body.containsKey("isActive")) ind.setIsActive(Boolean.parseBoolean(body.get("isActive").toString()));
                 yield industryRepository.save(ind);
             }
+            case "principals" -> {
+                Principal pr = principalRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Principal not found"));
+                if (body.containsKey("code")) pr.setCode((String) body.get("code"));
+                if (body.containsKey("name")) pr.setName((String) body.get("name"));
+                if (body.containsKey("country")) pr.setCountry((String) body.get("country"));
+                if (body.containsKey("contactPerson")) pr.setContactPerson((String) body.get("contactPerson"));
+                if (body.containsKey("contactEmail")) pr.setContactEmail((String) body.get("contactEmail"));
+                if (body.containsKey("contactPhone")) pr.setContactPhone((String) body.get("contactPhone"));
+                if (body.containsKey("description")) pr.setDescription((String) body.get("description"));
+                if (body.containsKey("isActive")) pr.setIsActive(Boolean.parseBoolean(body.get("isActive").toString()));
+                yield principalRepository.save(pr);
+            }
             default -> throw new IllegalArgumentException("Unknown master type: " + type);
         };
     }
@@ -222,6 +261,7 @@ public class MastersService {
             case "expense-heads" -> expenseHeadRepository.deleteById(id);
             case "grade-fuel-rates" -> gradeFuelRateRepository.deleteById(id);
             case "industries" -> industryRepository.deleteById(id);
+            case "principals" -> principalRepository.deleteById(id);
             default -> throw new IllegalArgumentException("Unknown master type: " + type);
         }
         return true;

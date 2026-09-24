@@ -1,0 +1,144 @@
+/* Global Styles & Print Optimization */
+
+@media print {
+  /* 1. Page and document settings */
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm;
+  }
+
+  *, *::before, *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-sizing: border-box !important;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #FFFFFF !important;
+    color: #000000 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    font-size: 11pt !important;
+  }
+
+  /* 2. Hide all non-printable navigation, chrome, headers, drawer, buttons */
+  nav,
+  header,
+  aside,
+  button,
+  .no-print,
+  .MuiDrawer-root,
+  .MuiAppBar-root,
+  .MuiBackdrop-root,
+  .MuiDialogActions-root,
+  .MuiTabs-root,
+  .MuiIconButton-root,
+  .MuiButtonBase-root.no-print {
+    display: none !important;
+  }
+
+  /* 3. React Root container */
+  #root {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  /* 4. When printing from a modal dialog (e.g. Opportunities quotation preview), hide the background #root page */
+  body:has(.MuiDialog-root) #root {
+    display: none !important;
+  }
+
+  /* 5. Main content and Box wrapper resets */
+  main,
+  [role="main"],
+  .MuiBox-root {
+    margin: 0 !important;
+    margin-top: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    margin-bottom: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* 6. MUI Dialog container & paper resets for dialog-based printing */
+  .MuiDialog-root {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .MuiDialog-container {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .MuiDialog-paper {
+    position: static !important;
+    display: block !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    background: #FFFFFF !important;
+  }
+
+  /* 7. Printable Quotation Sheet isolate styling */
+  .printable-quotation-sheet {
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #FFFFFF !important;
+    color: #000000 !important;
+    overflow: visible !important;
+  }
+
+  .printable-quotation-sheet * {
+    visibility: visible !important;
+  }
+
+  .printable-quotation-sheet table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  /* Avoid splitting table rows or cards across page breaks */
+  table, tr, td, th, .MuiPaper-root {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}

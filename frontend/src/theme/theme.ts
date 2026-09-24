@@ -94,25 +94,52 @@ export const lightTheme = createTheme({
           borderRadius: 10,
           boxShadow: 'none',
           padding: '8px 18px',
-          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+          fontWeight: 600,
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
           '&:hover': {
-            boxShadow: '0 6px 20px -4px rgba(79, 70, 229, 0.35)',
-            transform: 'translateY(-1px)',
+            transform: 'translateY(-1.5px)',
           },
           '&:active': {
             transform: 'translateY(0)',
           },
         },
-        containedSecondary: {
+        containedPrimary: {
+          background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.94) 0%, rgba(99, 102, 241, 0.88) 100%)',
+          color: '#FFFFFF',
+          border: '1px solid rgba(255, 255, 255, 0.25)',
+          boxShadow: '0 4px 16px -2px rgba(79, 70, 229, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
           '&:hover': {
-            boxShadow: '0 6px 20px -4px rgba(14, 165, 233, 0.35)',
+            background: 'linear-gradient(135deg, rgba(79, 70, 229, 1) 0%, rgba(99, 102, 241, 0.96) 100%)',
+            boxShadow: '0 8px 24px -3px rgba(79, 70, 229, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4)',
+          },
+        },
+        containedSecondary: {
+          background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.92) 0%, rgba(56, 189, 248, 0.86) 100%)',
+          color: '#FFFFFF',
+          border: '1px solid rgba(255, 255, 255, 0.28)',
+          boxShadow: '0 4px 16px -2px rgba(14, 165, 233, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35)',
+          '&:hover': {
+            background: 'linear-gradient(135deg, rgba(14, 165, 233, 1) 0%, rgba(56, 189, 248, 0.95) 100%)',
+            boxShadow: '0 8px 24px -3px rgba(14, 165, 233, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.45)',
           },
         },
         outlined: {
-          borderWidth: '1.5px',
+          backgroundColor: 'rgba(255, 255, 255, 0.65)',
+          borderColor: 'rgba(203, 213, 225, 0.85)',
+          borderWidth: '1px',
+          boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
           '&:hover': {
-            borderWidth: '1.5px',
-            backgroundColor: 'rgba(79, 70, 229, 0.04)',
+            borderWidth: '1px',
+            borderColor: 'rgba(79, 70, 229, 0.4)',
+            backgroundColor: 'rgba(79, 70, 229, 0.06)',
+            boxShadow: '0 4px 12px rgba(79, 70, 229, 0.12)',
+          },
+        },
+        text: {
+          '&:hover': {
+            backgroundColor: 'rgba(79, 70, 229, 0.08)',
           },
         },
       },

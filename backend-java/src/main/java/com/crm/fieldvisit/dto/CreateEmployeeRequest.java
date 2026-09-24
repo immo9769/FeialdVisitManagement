@@ -16,7 +16,6 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class CreateEmployeeRequest {
 
-    @NotBlank(message = "Employee number is required")
     private String employeeNo;
 
     @NotBlank(message = "Name is required")

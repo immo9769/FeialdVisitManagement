@@ -6,6 +6,7 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -34,6 +35,16 @@ public class Product {
     @Column(nullable = false, length = 100)
     @Builder.Default
     private String category = "Machinery";
+
+    @Column(length = 100)
+    private String principal;
+
+    @Column(length = 50)
+    @Builder.Default
+    private String role = "ALL";
+
+    @Column(name = "unit_price", precision = 12, scale = 2)
+    private BigDecimal unitPrice;
 
     @Column(name = "is_active", nullable = false)
     @Builder.Default

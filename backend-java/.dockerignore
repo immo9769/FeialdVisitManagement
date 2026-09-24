@@ -1,0 +1,13 @@
+target/
+.mvn/
+mvnw*
+.idea/
+.vscode/
+*.iml
+.project
+.classpath
+.settings/
+uploads/*
+!uploads/.gitkeep
+!uploads/visits/.gitkeep
+*.log

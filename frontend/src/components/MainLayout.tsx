@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
@@ -27,6 +27,7 @@ import {
   Badge,
   Stack,
   Paper,
+  Collapse,
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -46,15 +47,38 @@ import {
   Phone as PhoneIcon,
   Email as EmailIcon,
   CheckCircle as CheckCircleIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
+  Menu as MenuIcon,
+  TrendingUp as OpportunityIcon,
+  RequestQuote as QuotationIcon,
+  ExpandLess as ExpandLessIcon,
+  ExpandMore as ExpandMoreIcon,
+  BusinessCenter as CrmIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 
-const DRAWER_WIDTH = 260;
+const EXPANDED_DRAWER_WIDTH = 260;
+const COLLAPSED_DRAWER_WIDTH = 74;
 
 export const MainLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('crm_sidebar_collapsed') === 'true';
+  });
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem('crm_sidebar_collapsed', String(next));
+      return next;
+    });
+  };
+
+  const currentDrawerWidth = sidebarCollapsed ? COLLAPSED_DRAWER_WIDTH : EXPANDED_DRAWER_WIDTH;
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
@@ -82,22 +106,40 @@ export const MainLayout: React.FC = () => {
     setPasswordModalOpen(false);
   };
 
-  const allMenuItems = [
+  const [crmMenuOpen, setCrmMenuOpen] = useState(true);
+
+  // Auto-expand CRM menu when navigating to CRM routes
+  useEffect(() => {
+    if (location.pathname.startsWith('/crm')) {
+      setCrmMenuOpen(true);
+    }
+  }, [location.pathname]);
+
+  const topMenuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/', roles: ['ADMIN', 'MANAGER', 'SALES_EXEC', 'SERVICE_ENG'] },
-    { text: 'Employees', icon: <EmployeesIcon />, path: '/employees', roles: ['ADMIN', 'MANAGER'] },
+    { text: 'Daily Visits', icon: <VisitsIcon />, path: '/daily-visits', roles: ['ADMIN', 'MANAGER', 'SALES_EXEC', 'SERVICE_ENG'] },
+  ];
+
+  const crmSubItems = [
+    { text: 'Opportunities & Pipeline', icon: <OpportunityIcon />, path: '/crm/opportunities', roles: ['ADMIN', 'MANAGER', 'SALES_EXEC'] },
+    { text: 'Quotations & Revisions', icon: <QuotationIcon />, path: '/crm/quotations', roles: ['ADMIN', 'MANAGER', 'SALES_EXEC'] },
+  ];
+
+  const bottomMenuItems = [
     { text: 'Customers', icon: <CustomersIcon />, path: '/customers', roles: ['ADMIN', 'MANAGER', 'SALES_EXEC', 'SERVICE_ENG'] },
     { text: 'Contacts', icon: <ContactsIcon />, path: '/contacts', roles: ['ADMIN', 'MANAGER', 'SALES_EXEC', 'SERVICE_ENG'] },
-    { text: 'Daily Visits', icon: <VisitsIcon />, path: '/daily-visits', roles: ['ADMIN', 'MANAGER', 'SALES_EXEC', 'SERVICE_ENG'] },
+    { text: 'Employees', icon: <EmployeesIcon />, path: '/employees', roles: ['ADMIN', 'MANAGER'] },
     { text: 'Approvals Inbox', icon: <ApprovalsIcon />, path: '/approvals', roles: ['ADMIN', 'MANAGER'] },
     { text: 'Monthly Report', icon: <ReportsIcon />, path: '/reports/monthly', roles: ['ADMIN', 'MANAGER', 'SALES_EXEC', 'SERVICE_ENG'] },
     { text: 'Master Data Management', icon: <MastersIcon />, path: '/masters', roles: ['ADMIN'] },
     { text: 'User Security Matrix', icon: <SecurityIcon />, path: '/user-management', roles: ['ADMIN'] },
-    { text: 'My Profile', icon: <ProfileIcon />, path: '/profile', roles: ['ADMIN', 'MANAGER', 'SALES_EXEC', 'SERVICE_ENG'] },
   ];
 
   // RBAC Filtering based on user role
   const userRole = user?.role || 'SERVICE_ENG';
-  const filteredMenuItems = allMenuItems.filter((item) => item.roles.includes(userRole));
+  const filteredTopItems = topMenuItems.filter((item) => item.roles.includes(userRole));
+  const showCrmModule = ['ADMIN', 'MANAGER', 'SALES_EXEC'].includes(userRole);
+  const filteredBottomItems = bottomMenuItems.filter((item) => item.roles.includes(userRole));
 
   const getRoleBadge = (role?: string) => {
     switch (role) {
@@ -123,17 +165,37 @@ export const MainLayout: React.FC = () => {
         position="fixed"
         elevation={0}
         sx={{
-          width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
-          ml: { sm: `${DRAWER_WIDTH}px` },
+          width: { sm: `calc(100% - ${currentDrawerWidth}px)` },
+          ml: { sm: `${currentDrawerWidth}px` },
           bgcolor: 'rgba(255, 255, 255, 0.95)',
           backdropFilter: 'blur(12px)',
           color: 'text.primary',
           borderBottom: '1px solid #E2E8F0',
+          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
         <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, sm: 3 } }}>
           {/* Brand & Location Indicator */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Tooltip title={sidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}>
+              <IconButton
+                onClick={toggleSidebar}
+                size="small"
+                sx={{
+                  color: '#475569',
+                  bgcolor: '#F1F5F9',
+                  border: '1px solid #E2E8F0',
+                  borderRadius: 2,
+                  p: 0.7,
+                  '&:hover': {
+                    bgcolor: 'rgba(79, 70, 229, 0.1)',
+                    color: 'primary.main',
+                  },
+                }}
+              >
+                {sidebarCollapsed ? <MenuIcon fontSize="small" /> : <ChevronLeftIcon fontSize="small" />}
+              </IconButton>
+            </Tooltip>
             <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 800, color: 'primary.main', fontSize: '1.05rem', letterSpacing: '-0.02em' }}>
               Field Visit Management CRM
             </Typography>
@@ -317,113 +379,397 @@ export const MainLayout: React.FC = () => {
       <Drawer
         variant="permanent"
         sx={{
-          width: DRAWER_WIDTH,
+          width: currentDrawerWidth,
           flexShrink: 0,
           '& .MuiDrawer-paper': {
-            width: DRAWER_WIDTH,
+            width: currentDrawerWidth,
             boxSizing: 'border-box',
             bgcolor: '#0F172A', // Dark modern slate
             color: '#F8FAFC',
             borderRight: 'none',
+            transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+            overflowX: 'hidden',
           },
         }}
       >
-        <Toolbar sx={{ px: 2.5, display: 'flex', alignItems: 'center', gap: 1.5, py: 1 }}>
-          <Avatar
-            sx={{
-              bgcolor: 'primary.main',
-              width: 36,
-              height: 36,
-              fontWeight: 800,
-              fontSize: '0.9rem',
-              boxShadow: '0 4px 14px rgba(79, 70, 229, 0.4)',
-              background: 'linear-gradient(135deg, #4F46E5 0%, #06B6D4 100%)',
-            }}
-          >
-            FV
-          </Avatar>
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#FFFFFF', lineHeight: 1.1, letterSpacing: '0.02em', fontSize: '0.92rem' }}>
-              FIELD VISIT CRM
-            </Typography>
-            <Typography variant="caption" sx={{ color: '#94A3B8', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              MS SQL • Spring Boot 3
-            </Typography>
+        <Toolbar sx={{ px: sidebarCollapsed ? 1.5 : 2.5, display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed ? 'center' : 'space-between', py: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, overflow: 'hidden' }}>
+            <Tooltip title={sidebarCollapsed ? "Field Visit CRM" : ""} placement="right">
+              <Avatar
+                sx={{
+                  bgcolor: 'primary.main',
+                  width: 38,
+                  height: 38,
+                  fontWeight: 800,
+                  fontSize: '0.9rem',
+                  boxShadow: '0 4px 14px rgba(79, 70, 229, 0.4)',
+                  background: 'linear-gradient(135deg, #4F46E5 0%, #06B6D4 100%)',
+                }}
+              >
+                FV
+              </Avatar>
+            </Tooltip>
+            {!sidebarCollapsed && (
+              <Box sx={{ whiteSpace: 'nowrap' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#FFFFFF', lineHeight: 1.1, letterSpacing: '0.02em', fontSize: '0.92rem' }}>
+                  FIELD VISIT CRM
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#94A3B8', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  MS SQL • Spring Boot 3
+                </Typography>
+              </Box>
+            )}
           </Box>
         </Toolbar>
         <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.08)' }} />
 
-        {/* User Card inside Sidebar */}
-        <Box sx={{ px: 2, py: 1.5 }}>
-          <Paper
-            elevation={0}
-            onClick={() => navigate('/profile')}
-            sx={{
-              p: 1.5,
-              borderRadius: 2.5,
-              bgcolor: 'rgba(255, 255, 255, 0.04)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1.5,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              '&:hover': {
-                bgcolor: 'rgba(255, 255, 255, 0.08)',
-                borderColor: 'rgba(79, 70, 229, 0.4)',
-              },
-            }}
-          >
-            <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main', fontSize: '0.8rem', fontWeight: 700 }}>
-              {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
-            </Avatar>
-            <Box sx={{ overflow: 'hidden' }}>
-              <Typography variant="caption" noWrap sx={{ fontWeight: 700, color: '#FFFFFF', display: 'block' }}>
-                {user?.name}
-              </Typography>
-              <Typography variant="caption" sx={{ color: '#94A3B8', fontSize: '0.68rem', display: 'block' }}>
-                {roleInfo.label} • {user?.branch || 'Mumbai'}
-              </Typography>
+        {/* User Capsule inside Sidebar - Clicking opens /profile */}
+        <Box sx={{ px: sidebarCollapsed ? 1 : 2, py: 1.5 }}>
+          {sidebarCollapsed ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+              <Tooltip title={`Profile: ${user?.name || 'User'} (Click to open)`} placement="right" arrow>
+                <Avatar
+                  onClick={() => navigate('/profile')}
+                  sx={{
+                    width: 38,
+                    height: 38,
+                    bgcolor: location.pathname === '/profile' ? 'primary.main' : 'secondary.main',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    fontWeight: 800,
+                    border: location.pathname === '/profile' ? '2px solid #38BDF8' : '2px solid transparent',
+                    boxShadow: location.pathname === '/profile' ? '0 0 12px rgba(56, 189, 248, 0.5)' : 'none',
+                    transition: 'all 0.2s',
+                    '&:hover': {
+                      transform: 'scale(1.08)',
+                      boxShadow: '0 0 14px rgba(79, 70, 229, 0.6)',
+                    },
+                  }}
+                >
+                  {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                </Avatar>
+              </Tooltip>
             </Box>
-          </Paper>
+          ) : (
+            <Tooltip title="Click to view full profile & permissions" placement="right">
+              <Paper
+                elevation={0}
+                onClick={() => navigate('/profile')}
+                sx={{
+                  p: 1.5,
+                  borderRadius: 2.5,
+                  bgcolor: location.pathname === '/profile' ? 'rgba(79, 70, 229, 0.2)' : 'rgba(255, 255, 255, 0.04)',
+                  border: location.pathname === '/profile' ? '1.5px solid #6366F1' : '1px solid rgba(255, 255, 255, 0.08)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    bgcolor: 'rgba(255, 255, 255, 0.08)',
+                    borderColor: 'rgba(79, 70, 229, 0.4)',
+                    transform: 'translateX(2px)',
+                  },
+                }}
+              >
+                <Avatar sx={{ width: 34, height: 34, bgcolor: 'secondary.main', fontSize: '0.85rem', fontWeight: 800 }}>
+                  {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                </Avatar>
+                <Box sx={{ overflow: 'hidden' }}>
+                  <Typography variant="caption" noWrap sx={{ fontWeight: 700, color: '#FFFFFF', display: 'block' }}>
+                    {user?.name}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: '#94A3B8', fontSize: '0.68rem', display: 'block' }}>
+                    {roleInfo.label} • {user?.branch || 'Mumbai'}
+                  </Typography>
+                </Box>
+              </Paper>
+            </Tooltip>
+          )}
         </Box>
 
         <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.08)', mb: 1 }} />
 
         {/* Navigation List */}
-        <List sx={{ px: 1.5, py: 0.5 }}>
-          {filteredMenuItems.map((item) => {
+        <List sx={{ px: sidebarCollapsed ? 1 : 1.5, py: 0.5 }}>
+          {/* Top Items: Dashboard, Daily Visits */}
+          {filteredTopItems.map((item) => {
             const isActive = location.pathname === item.path;
-            return (
-              <ListItem key={item.text} disablePadding sx={{ mb: 0.6 }}>
-                <ListItemButton
-                  onClick={() => navigate(item.path)}
+            const buttonContent = (
+              <ListItemButton
+                onClick={() => navigate(item.path)}
+                sx={{
+                  borderRadius: 2,
+                  bgcolor: isActive ? 'primary.main' : 'transparent',
+                  color: isActive ? '#FFFFFF' : '#94A3B8',
+                  boxShadow: isActive ? '0 4px 12px rgba(79, 70, 229, 0.35)' : 'none',
+                  py: 1.1,
+                  px: sidebarCollapsed ? 1 : 1.5,
+                  justifyContent: sidebarCollapsed ? 'center' : 'initial',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    bgcolor: isActive ? 'primary.main' : 'rgba(255, 255, 255, 0.06)',
+                    color: '#FFFFFF',
+                    transform: sidebarCollapsed ? 'none' : 'translateX(2px)',
+                  },
+                }}
+              >
+                <ListItemIcon
                   sx={{
-                    borderRadius: 2,
-                    bgcolor: isActive ? 'primary.main' : 'transparent',
                     color: isActive ? '#FFFFFF' : '#94A3B8',
-                    boxShadow: isActive ? '0 4px 12px rgba(79, 70, 229, 0.35)' : 'none',
-                    py: 1,
-                    px: 1.5,
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      bgcolor: isActive ? 'primary.main' : 'rgba(255, 255, 255, 0.06)',
-                      color: '#FFFFFF',
-                      transform: 'translateX(2px)',
-                    },
+                    minWidth: sidebarCollapsed ? 0 : 36,
+                    mr: sidebarCollapsed ? 0 : 1,
+                    justifyContent: 'center',
                   }}
                 >
-                  <ListItemIcon sx={{ color: isActive ? '#FFFFFF' : '#94A3B8', minWidth: 36 }}>
-                    {item.icon}
-                  </ListItemIcon>
+                  {item.icon}
+                </ListItemIcon>
+                {!sidebarCollapsed && (
                   <ListItemText
                     primary={item.text}
                     primaryTypographyProps={{
                       fontSize: '0.85rem',
                       fontWeight: isActive ? 700 : 500,
+                      noWrap: true,
                     }}
                   />
-                </ListItemButton>
+                )}
+              </ListItemButton>
+            );
+
+            return (
+              <ListItem key={item.text} disablePadding sx={{ mb: 0.6 }}>
+                {sidebarCollapsed ? (
+                  <Tooltip title={item.text} placement="right" arrow>
+                    {buttonContent}
+                  </Tooltip>
+                ) : (
+                  buttonContent
+                )}
+              </ListItem>
+            );
+          })}
+
+          {/* CRM Module (Collapsible directly below Daily Visits) */}
+          {showCrmModule && (
+            <>
+              <ListItem disablePadding sx={{ mb: 0.6 }}>
+                {sidebarCollapsed ? (
+                  <Tooltip title="CRM Module" placement="right" arrow>
+                    <ListItemButton
+                      onClick={() => {
+                        setSidebarCollapsed(false);
+                        setCrmMenuOpen(true);
+                      }}
+                      sx={{
+                        borderRadius: 2,
+                        bgcolor: location.pathname.startsWith('/crm') ? 'rgba(79, 70, 229, 0.25)' : 'transparent',
+                        color: location.pathname.startsWith('/crm') ? '#A5B4FC' : '#94A3B8',
+                        py: 1.1,
+                        px: 1,
+                        justifyContent: 'center',
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                          bgcolor: 'rgba(255, 255, 255, 0.08)',
+                          color: '#FFFFFF',
+                        },
+                      }}
+                    >
+                      <ListItemIcon sx={{ color: location.pathname.startsWith('/crm') ? '#818CF8' : '#94A3B8', minWidth: 0, justifyContent: 'center' }}>
+                        <CrmIcon />
+                      </ListItemIcon>
+                    </ListItemButton>
+                  </Tooltip>
+                ) : (
+                  <ListItemButton
+                    onClick={() => setCrmMenuOpen(!crmMenuOpen)}
+                    sx={{
+                      borderRadius: 2,
+                      bgcolor: location.pathname.startsWith('/crm') && !crmMenuOpen ? 'rgba(79, 70, 229, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+                      border: location.pathname.startsWith('/crm') ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid transparent',
+                      color: location.pathname.startsWith('/crm') ? '#FFFFFF' : '#E2E8F0',
+                      py: 1.1,
+                      px: 1.5,
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        bgcolor: 'rgba(255, 255, 255, 0.08)',
+                        color: '#FFFFFF',
+                      },
+                    }}
+                  >
+                    <ListItemIcon
+                      sx={{
+                        color: location.pathname.startsWith('/crm') ? '#818CF8' : '#94A3B8',
+                        minWidth: 36,
+                        mr: 1,
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <CrmIcon />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="CRM Module"
+                      primaryTypographyProps={{
+                        fontSize: '0.85rem',
+                        fontWeight: 700,
+                        noWrap: true,
+                        color: location.pathname.startsWith('/crm') ? '#818CF8' : '#FFFFFF',
+                      }}
+                    />
+                    {crmMenuOpen ? (
+                      <ExpandLessIcon sx={{ fontSize: 18, color: '#94A3B8' }} />
+                    ) : (
+                      <ExpandMoreIcon sx={{ fontSize: 18, color: '#94A3B8' }} />
+                    )}
+                  </ListItemButton>
+                )}
+              </ListItem>
+
+              {/* Sub-items: Opportunities & Pipeline, Quotations & Revisions */}
+              {!sidebarCollapsed ? (
+                <Collapse in={crmMenuOpen} timeout="auto" unmountOnExit>
+                  <List disablePadding sx={{ mb: 0.6 }}>
+                    {crmSubItems.map((subItem) => {
+                      const isActive = location.pathname === subItem.path;
+                      return (
+                        <ListItem key={subItem.text} disablePadding sx={{ mb: 0.4 }}>
+                          <ListItemButton
+                            onClick={() => navigate(subItem.path)}
+                            sx={{
+                              borderRadius: 2,
+                              bgcolor: isActive ? 'primary.main' : 'rgba(255, 255, 255, 0.02)',
+                              color: isActive ? '#FFFFFF' : '#CBD5E1',
+                              boxShadow: isActive ? '0 4px 12px rgba(79, 70, 229, 0.35)' : 'none',
+                              py: 0.85,
+                              pl: 3.5,
+                              pr: 1.5,
+                              transition: 'all 0.2s ease',
+                              '&:hover': {
+                                bgcolor: isActive ? 'primary.main' : 'rgba(255, 255, 255, 0.06)',
+                                color: '#FFFFFF',
+                                transform: 'translateX(3px)',
+                              },
+                            }}
+                          >
+                            <ListItemIcon
+                              sx={{
+                                color: isActive ? '#FFFFFF' : '#818CF8',
+                                minWidth: 26,
+                                mr: 1,
+                                justifyContent: 'center',
+                              }}
+                            >
+                              {subItem.icon}
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={`-- ${subItem.text}`}
+                              primaryTypographyProps={{
+                                fontSize: '0.8rem',
+                                fontWeight: isActive ? 700 : 500,
+                                noWrap: true,
+                              }}
+                            />
+                          </ListItemButton>
+                        </ListItem>
+                      );
+                    })}
+                  </List>
+                </Collapse>
+              ) : (
+                crmSubItems.map((subItem) => {
+                  const isActive = location.pathname === subItem.path;
+                  return (
+                    <ListItem key={subItem.text} disablePadding sx={{ mb: 0.6 }}>
+                      <Tooltip title={`CRM: ${subItem.text}`} placement="right" arrow>
+                        <ListItemButton
+                          onClick={() => navigate(subItem.path)}
+                          sx={{
+                            borderRadius: 2,
+                            bgcolor: isActive ? 'primary.main' : 'transparent',
+                            color: isActive ? '#FFFFFF' : '#818CF8',
+                            boxShadow: isActive ? '0 4px 12px rgba(79, 70, 229, 0.35)' : 'none',
+                            py: 1,
+                            px: 1,
+                            justifyContent: 'center',
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                              bgcolor: isActive ? 'primary.main' : 'rgba(255, 255, 255, 0.06)',
+                              color: '#FFFFFF',
+                            },
+                          }}
+                        >
+                          <ListItemIcon
+                            sx={{
+                              color: isActive ? '#FFFFFF' : '#818CF8',
+                              minWidth: 0,
+                              justifyContent: 'center',
+                            }}
+                          >
+                            {subItem.icon}
+                          </ListItemIcon>
+                        </ListItemButton>
+                      </Tooltip>
+                    </ListItem>
+                  );
+                })
+              )}
+            </>
+          )}
+
+          {/* Bottom Items: Customers, Contacts, Employees, Approvals, Reports, Masters, Security */}
+          {filteredBottomItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            const buttonContent = (
+              <ListItemButton
+                onClick={() => navigate(item.path)}
+                sx={{
+                  borderRadius: 2,
+                  bgcolor: isActive ? 'primary.main' : 'transparent',
+                  color: isActive ? '#FFFFFF' : '#94A3B8',
+                  boxShadow: isActive ? '0 4px 12px rgba(79, 70, 229, 0.35)' : 'none',
+                  py: 1.1,
+                  px: sidebarCollapsed ? 1 : 1.5,
+                  justifyContent: sidebarCollapsed ? 'center' : 'initial',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    bgcolor: isActive ? 'primary.main' : 'rgba(255, 255, 255, 0.06)',
+                    color: '#FFFFFF',
+                    transform: sidebarCollapsed ? 'none' : 'translateX(2px)',
+                  },
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    color: isActive ? '#FFFFFF' : '#94A3B8',
+                    minWidth: sidebarCollapsed ? 0 : 36,
+                    mr: sidebarCollapsed ? 0 : 1,
+                    justifyContent: 'center',
+                  }}
+                >
+                  {item.icon}
+                </ListItemIcon>
+                {!sidebarCollapsed && (
+                  <ListItemText
+                    primary={item.text}
+                    primaryTypographyProps={{
+                      fontSize: '0.85rem',
+                      fontWeight: isActive ? 700 : 500,
+                      noWrap: true,
+                    }}
+                  />
+                )}
+              </ListItemButton>
+            );
+
+            return (
+              <ListItem key={item.text} disablePadding sx={{ mb: 0.6 }}>
+                {sidebarCollapsed ? (
+                  <Tooltip title={item.text} placement="right" arrow>
+                    {buttonContent}
+                  </Tooltip>
+                ) : (
+                  buttonContent
+                )}
               </ListItem>
             );
           })}
@@ -436,9 +782,10 @@ export const MainLayout: React.FC = () => {
         sx={{
           flexGrow: 1,
           p: { xs: 2, sm: 3 },
-          width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
+          width: { sm: `calc(100% - ${currentDrawerWidth}px)` },
           mt: 8,
           minHeight: 'calc(100vh - 64px)',
+          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
         <Outlet />

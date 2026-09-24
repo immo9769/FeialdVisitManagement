@@ -121,7 +121,7 @@ export const DashboardPage: React.FC = () => {
           onClick={() => navigate('/daily-visits')}
           sx={{ fontWeight: 700 }}
         >
-          + LOG DAILY VISIT
+          LOG DAILY VISIT
         </Button>
       </Box>
 

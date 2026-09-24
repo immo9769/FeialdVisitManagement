@@ -34,6 +34,7 @@ import {
   CheckCircle as CheckIcon,
   Cancel as CrossIcon,
   FileDownload as DownloadIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import api from '../services/api';
 import { exportToCsv } from '../utils/exportCsv';
@@ -305,11 +306,23 @@ export const UserManagementPage: React.FC = () => {
         </CustomTabPanel>
       </Card>
 
-      {/* Edit User Security Profile Dialog */}
-      <Dialog open={openModal} onClose={() => setOpenModal(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Edit Security Profile — {editingUser?.name}</DialogTitle>
-        <DialogContent dividers>
-          <Grid container spacing={2}>
+      {/* Edit User Security Profile Modal Dialog */}
+      <Dialog
+        open={openModal}
+        onClose={() => setOpenModal(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ p: 2.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+          <Typography variant="h6" sx={{ fontWeight: 700 }}>
+            Edit Security Profile — {editingUser?.name}
+          </Typography>
+          <IconButton onClick={() => setOpenModal(false)} size="small">
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          <Grid container spacing={2.5} sx={{ mt: 0.5 }}>
             <Grid item xs={12}>
               <TextField
                 select
@@ -354,7 +367,7 @@ export const UserManagementPage: React.FC = () => {
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
+        <DialogActions sx={{ p: 2, borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', bgcolor: '#F8FAFC' }}>
           <Button onClick={() => setOpenModal(false)}>Cancel</Button>
           <Button variant="contained" onClick={handleSaveUserRole}>
             UPDATE SECURITY ROLE

@@ -16,6 +16,8 @@ import { ApprovalsPage } from './pages/ApprovalsPage';
 import { MonthlyReportPage } from './pages/MonthlyReportPage';
 import { UserManagementPage } from './pages/UserManagementPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { OpportunitiesPage } from './pages/OpportunitiesPage';
+import { QuotationsPage } from './pages/QuotationsPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -44,6 +46,8 @@ export const AppContent: React.FC = () => {
         <Route path="approvals" element={<ApprovalsPage />} />
         <Route path="reports/monthly" element={<MonthlyReportPage />} />
         <Route path="masters" element={<MastersPage />} />
+        <Route path="crm/opportunities" element={<OpportunitiesPage />} />
+        <Route path="crm/quotations" element={<QuotationsPage />} />
         <Route path="user-management" element={<UserManagementPage />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>

@@ -14,7 +14,6 @@ import java.util.List;
 @AllArgsConstructor
 public class CreateCustomerRequest {
 
-    @NotBlank(message = "Customer code is required")
     private String customerCode;
 
     @NotBlank(message = "Customer name is required")

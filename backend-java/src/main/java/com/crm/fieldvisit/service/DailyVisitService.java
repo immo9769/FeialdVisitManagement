@@ -100,6 +100,8 @@ public class DailyVisitService {
                 .personCount(request.getPersonCount() != null ? request.getPersonCount() : 1)
                 .status(request.getStatus() != null ? request.getStatus() : "DRAFT")
                 .rejectionReason(request.getRejectionReason())
+                .salesReportUrl(request.getSalesReportUrl())
+                .salesReportNotes(request.getSalesReportNotes())
                 .build();
 
         // Add Expenses directly to the cascade collection
@@ -161,6 +163,8 @@ public class DailyVisitService {
         if (request.getPersonCount() != null) visit.setPersonCount(request.getPersonCount());
         if (request.getStatus() != null) visit.setStatus(request.getStatus());
         if (request.getRejectionReason() != null) visit.setRejectionReason(request.getRejectionReason());
+        if (request.getSalesReportUrl() != null) visit.setSalesReportUrl(request.getSalesReportUrl());
+        if (request.getSalesReportNotes() != null) visit.setSalesReportNotes(request.getSalesReportNotes());
 
         // Mutate existing collection in place so Hibernate orphanRemoval is satisfied
         if (request.getExpenses() != null) {

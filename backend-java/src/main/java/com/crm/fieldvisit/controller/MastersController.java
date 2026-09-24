@@ -99,6 +99,12 @@ public class MastersController {
         return ResponseEntity.ok(ApiResponse.success(mastersService.getAllIndustries()));
     }
 
+    @Operation(summary = "List all OEM principals")
+    @GetMapping("/principals")
+    public ResponseEntity<ApiResponse<List<Principal>>> getPrincipals() {
+        return ResponseEntity.ok(ApiResponse.success(mastersService.getAllPrincipals()));
+    }
+
     @Operation(summary = "Create new master item by entity type")
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{type}")

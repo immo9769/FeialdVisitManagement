@@ -35,8 +35,14 @@ public class CustomerService {
 
     @Transactional
     public Customer create(CreateCustomerRequest request) {
+        String code = request.getCustomerCode();
+        if (code == null || code.isBlank()) {
+            long count = customerRepository.count();
+            code = String.format("CUST%03d", count + 1);
+        }
+
         Customer customer = Customer.builder()
-                .customerCode(request.getCustomerCode())
+                .customerCode(code)
                 .name(request.getName())
                 .customerType(request.getCustomerType() != null ? request.getCustomerType() : "Prospect")
                 .industry(request.getIndustry())

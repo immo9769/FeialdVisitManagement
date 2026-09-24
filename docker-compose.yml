@@ -1,0 +1,115 @@
+version: '3.8'
+
+services:
+  # ===================================================================
+  # 1. Database: Microsoft SQL Server 2022
+  # ===================================================================
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: field-crm-sqlserver
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${DB_PASSWORD:-FieldCRM@Secure2026!}"
+      MSSQL_PID: "${MSSQL_PID:-Developer}"
+    ports:
+      - "${DB_PORT:-1433}:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -C -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - crm-network
+
+  # ===================================================================
+  # 2. Database Initializer: Auto-provision Database if not existing
+  # ===================================================================
+  sqlserver-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: field-crm-sqlserver-init
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        echo "Waiting for SQL Server to accept connections..."
+        /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -C -Q "IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = N'$$DB_NAME') CREATE DATABASE [$$DB_NAME];"
+        echo "Database '$$DB_NAME' is ready."
+    environment:
+      MSSQL_SA_PASSWORD: "${DB_PASSWORD:-FieldCRM@Secure2026!}"
+      DB_NAME: "${DB_NAME:-field_visit}"
+    networks:
+      - crm-network
+
+  # ===================================================================
+  # 3. Backend: Spring Boot 3 / Java 21 REST API
+  # ===================================================================
+  backend:
+    build:
+      context: ./backend-java
+      dockerfile: Dockerfile
+    container_name: field-crm-backend
+    restart: unless-stopped
+    depends_on:
+      sqlserver-init:
+        condition: service_completed_successfully
+    environment:
+      DB_HOST: "sqlserver"
+      DB_PORT: "1433"
+      DB_NAME: "${DB_NAME:-field_visit}"
+      DB_USER: "sa"
+      DB_PASSWORD: "${DB_PASSWORD:-FieldCRM@Secure2026!}"
+      SERVER_PORT: "4000"
+      JWT_SECRET: "${JWT_SECRET:-EnterpriseFieldVisitCRMSecureProductionKey2026EnterpriseFieldVisitCRMSecretKey2026!}"
+      JWT_EXPIRATION_MS: "${JWT_EXPIRATION_MS:-86400000}"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "${SPRING_JPA_HIBERNATE_DDL_AUTO:-update}"
+      JAVA_OPTS: "${JAVA_OPTS:--Xms256m -Xmx512m -XX:+UseG1GC}"
+    ports:
+      - "${BACKEND_PORT:-4000}:4000"
+    volumes:
+      - uploads-data:/app/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:4000/v3/api-docs || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - crm-network
+
+  # ===================================================================
+  # 4. Frontend: React Vite SPA via Nginx Reverse Proxy
+  # ===================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: field-crm-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    networks:
+      - crm-network
+
+# ===================================================================
+# Persistent Volumes & Custom Bridge Network
+# ===================================================================
+volumes:
+  mssql-data:
+    name: field_crm_mssql_data
+  uploads-data:
+    name: field_crm_uploads_data
+
+networks:
+  crm-network:
+    name: field_crm_network
+    driver: bridge

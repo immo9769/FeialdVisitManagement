@@ -32,6 +32,8 @@ import {
   Search as SearchIcon,
   Star as StarIcon,
   StarBorder as StarBorderIcon,
+  Close as CloseIcon,
+  ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -156,6 +158,18 @@ export const ContactsPage: React.FC = () => {
     }
   };
 
+  const getCustomerLabel = (c: any) => {
+    if (c.customer?.name) {
+      return `${c.customer.name}${c.customer.customerCode ? ` (${c.customer.customerCode})` : ''}`;
+    }
+    const custId = c.customerId || c.customer?.id;
+    const found = customers.find((cust) => Number(cust.id) === Number(custId));
+    if (found) {
+      return `${found.name}${found.customerCode ? ` (${found.customerCode})` : ''}`;
+    }
+    return c.customerName || '-';
+  };
+
   const filteredContacts = contacts.filter((c) => {
     if (selectedCustomerId && String(c.customerId || c.customer?.id) !== String(selectedCustomerId)) {
       return false;
@@ -163,7 +177,8 @@ export const ContactsPage: React.FC = () => {
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const matchName = c.contactName?.toLowerCase().includes(q);
-      const matchCust = c.customer?.name?.toLowerCase().includes(q);
+      const custLabel = getCustomerLabel(c).toLowerCase();
+      const matchCust = custLabel.includes(q);
       const matchDesg = c.designation?.toLowerCase().includes(q);
       const matchPhone = c.mobileNo?.toLowerCase().includes(q);
       if (!matchName && !matchCust && !matchDesg && !matchPhone) return false;
@@ -173,217 +188,253 @@ export const ContactsPage: React.FC = () => {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box>
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>
-            Customer Contacts Directory
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Manage contact personnel, designations, and primary contacts for default visit logging
-          </Typography>
-        </Box>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAddModal}>
-          + Add New Contact
-        </Button>
-      </Box>
-
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-
-      {/* Filter Bar */}
-      <Card sx={{ p: 2, mb: 3 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              size="small"
-              placeholder="Search contact name, customer, designation, mobile..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              InputProps={{
-                startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />,
-              }}
-            />
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <TextField
-              select
-              fullWidth
-              size="small"
-              label="Filter by Customer"
-              value={selectedCustomerId}
-              onChange={(e) => setSelectedCustomerId(e.target.value)}
-            >
-              <MenuItem value="">All Customers</MenuItem>
-              {customers.map((cust) => (
-                <MenuItem key={cust.id} value={cust.id}>{cust.name}</MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-          <Grid item xs={12} sm={2}>
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={() => {
-                setSearchQuery('');
-                setSelectedCustomerId('');
-              }}
-            >
-              Reset
+      {!openModal && (
+        <>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Box>
+              <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                Customer Contacts Directory
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Manage contact personnel, designations, and primary contacts for default visit logging
+              </Typography>
+            </Box>
+            <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAddModal}>
+              Add New Contact
             </Button>
-          </Grid>
-        </Grid>
-      </Card>
-
-      <Card>
-        {loading ? (
-          <Box sx={{ p: 4, textAlign: 'center' }}>
-            <CircularProgress />
           </Box>
-        ) : (
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Customer Organization</TableCell>
-                <TableCell>Contact Person Name</TableCell>
-                <TableCell>Designation</TableCell>
-                <TableCell>Mobile No</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell align="center">Primary Status</TableCell>
-                <TableCell align="center">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredContacts.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 3, color: 'text.secondary' }}>
-                    No contacts found matching criteria.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredContacts.map((c) => (
-                  <TableRow key={c.id} hover>
-                    <TableCell sx={{ fontWeight: 700, color: 'primary.main' }}>{c.customer?.name || '-'}</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>{c.contactName}</TableCell>
-                    <TableCell>{c.designation || '-'}</TableCell>
-                    <TableCell>{c.mobileNo || '-'}</TableCell>
-                    <TableCell>{c.email || '-'}</TableCell>
-                    <TableCell align="center">
-                      <Tooltip title={c.isPrimary ? 'Primary Contact' : 'Set as Primary Contact'}>
-                        <Switch
-                          checked={Boolean(c.isPrimary)}
-                          onChange={() => handleTogglePrimaryDirect(c)}
-                          color="primary"
-                          size="small"
-                        />
-                      </Tooltip>
-                    </TableCell>
-                    <TableCell align="center">
-                      <Tooltip title="Edit Contact">
-                        <IconButton size="small" color="primary" onClick={() => handleOpenEditModal(c)}>
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Delete Contact">
-                        <IconButton size="small" color="error" onClick={() => setDeleteContactId(c.id)}>
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
+
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+          {/* Filter Bar */}
+          <Card sx={{ p: 2, mb: 3 }}>
+            <Grid container spacing={2} alignItems="center">
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Search contact name, customer, designation, mobile..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  InputProps={{
+                    startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />,
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label="Filter by Customer"
+                  value={selectedCustomerId}
+                  onChange={(e) => setSelectedCustomerId(e.target.value)}
+                >
+                  <MenuItem value="">All Customers</MenuItem>
+                  {customers.map((cust) => (
+                    <MenuItem key={cust.id} value={cust.id}>{cust.name}</MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+              <Grid item xs={12} sm={2}>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSelectedCustomerId('');
+                  }}
+                >
+                  Reset
+                </Button>
+              </Grid>
+            </Grid>
+          </Card>
+
+          {/* Contacts Table */}
+          <Card>
+            {loading ? (
+              <Box sx={{ p: 4, textAlign: 'center' }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Customer Organization</TableCell>
+                    <TableCell>Contact Person Name</TableCell>
+                    <TableCell>Designation</TableCell>
+                    <TableCell>Mobile Number</TableCell>
+                    <TableCell>Email Address</TableCell>
+                    <TableCell align="center">Primary Contact</TableCell>
+                    <TableCell align="center">Actions</TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        )}
-      </Card>
+                </TableHead>
+                <TableBody>
+                  {filteredContacts.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} align="center" sx={{ py: 3, color: 'text.secondary' }}>
+                        No contacts found matching criteria.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredContacts.map((c) => (
+                      <TableRow key={c.id} hover>
+                        <TableCell sx={{ fontWeight: 700, color: 'primary.main' }}>{getCustomerLabel(c)}</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>{c.contactName}</TableCell>
+                        <TableCell>{c.designation || '-'}</TableCell>
+                        <TableCell>{c.mobileNo || '-'}</TableCell>
+                        <TableCell>{c.email || '-'}</TableCell>
+                        <TableCell align="center">
+                          <Tooltip title={c.isPrimary ? 'Primary Contact' : 'Set as Primary Contact'}>
+                            <Switch
+                              checked={Boolean(c.isPrimary)}
+                              onChange={() => handleTogglePrimaryDirect(c)}
+                              color="primary"
+                              size="small"
+                            />
+                          </Tooltip>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Tooltip title="Edit Contact">
+                            <IconButton size="small" color="primary" onClick={() => handleOpenEditModal(c)}>
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Delete Contact">
+                            <IconButton size="small" color="error" onClick={() => setDeleteContactId(c.id)}>
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </Card>
+        </>
+      )}
 
-      {/* Add / Edit Contact Modal */}
-      <Dialog open={openModal} onClose={() => setOpenModal(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>
-          {editingId ? 'Edit Contact Person' : 'Add New Customer Contact Person'}
-        </DialogTitle>
-        <DialogContent dividers>
-          <Grid container spacing={2} sx={{ pt: 1 }}>
-            <Grid item xs={12}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                label="Customer Organization *"
-                value={formData.customerId}
-                onChange={(e) => setFormData({ ...formData, customerId: Number(e.target.value) })}
+      {/* IN-PAGE CREATE / EDIT CONTACT FORM */}
+      {openModal && (
+        <Box sx={{ mb: 4 }}>
+          {/* Top Bar with Back Button and Actions */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Button
+                variant="outlined"
+                startIcon={<ArrowBackIcon />}
+                onClick={() => setOpenModal(false)}
+                sx={{ textTransform: 'none' }}
               >
-                {customers.map((cust) => (
-                  <MenuItem key={cust.id} value={cust.id}>{cust.name} ({cust.customerCode})</MenuItem>
-                ))}
-              </TextField>
-            </Grid>
+                Back to Contacts
+              </Button>
+              <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                {editingId ? 'Edit Contact Person' : 'Add New Customer Contact Person'}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1.5 }}>
+              <Button variant="outlined" onClick={() => setOpenModal(false)}>
+                Cancel
+              </Button>
+              <Button variant="contained" color="primary" onClick={handleSaveContact}>
+                {editingId ? 'Update Contact' : 'Save Contact'}
+              </Button>
+            </Box>
+          </Box>
 
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Contact Person Name *"
-                value={formData.contactName}
-                onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
-              />
-            </Grid>
+          {/* Card 1: Contact Information */}
+          <Card sx={{ p: 3, mb: 3 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'primary.main', mb: 2 }}>
+              1. Contact Person & Organization Details
+            </Typography>
+            <Grid container spacing={2.5}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label="Customer Organization *"
+                  value={formData.customerId}
+                  onChange={(e) => setFormData({ ...formData, customerId: Number(e.target.value) })}
+                >
+                  {customers.map((cust) => (
+                    <MenuItem key={cust.id} value={cust.id}>{cust.name} ({cust.customerCode})</MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
 
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Designation"
-                value={formData.designation}
-                onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
-              />
-            </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Contact Person Name *"
+                  value={formData.contactName}
+                  onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
+                />
+              </Grid>
 
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Mobile Number"
-                value={formData.mobileNo}
-                onChange={(e) => setFormData({ ...formData, mobileNo: e.target.value })}
-              />
-            </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Designation / Role"
+                  value={formData.designation}
+                  onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
+                />
+              </Grid>
 
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Email Address"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              />
-            </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Mobile Number"
+                  value={formData.mobileNo}
+                  onChange={(e) => setFormData({ ...formData, mobileNo: e.target.value })}
+                />
+              </Grid>
 
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={formData.isPrimary}
-                    onChange={(e) => setFormData({ ...formData, isPrimary: e.target.checked })}
-                    color="primary"
-                  />
-                }
-                label={
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    Primary Contact
-                  </Typography>
-                }
-              />
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  type="email"
+                  label="Email Address"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+              </Grid>
+
+              <Grid item xs={12} md={6} sx={{ display: 'flex', alignItems: 'center' }}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.isPrimary}
+                      onChange={(e) => setFormData({ ...formData, isPrimary: e.target.checked })}
+                      color="primary"
+                    />
+                  }
+                  label={
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                      Designate as Primary Contact for Customer
+                    </Typography>
+                  }
+                />
+              </Grid>
             </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setOpenModal(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSaveContact}>
-            {editingId ? 'UPDATE CONTACT' : 'SAVE CONTACT'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+          </Card>
+
+          {/* Bottom Sticky Action Bar */}
+          <Box sx={{ p: 2.5, display: 'flex', justifyContent: 'space-between', bgcolor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 2 }}>
+            <Button onClick={() => setOpenModal(false)}>Cancel</Button>
+            <Button variant="contained" color="primary" onClick={handleSaveContact}>
+              {editingId ? 'UPDATE CONTACT' : 'SAVE CONTACT'}
+            </Button>
+          </Box>
+        </Box>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={Boolean(deleteContactId)} onClose={() => setDeleteContactId(null)} maxWidth="xs" fullWidth>
