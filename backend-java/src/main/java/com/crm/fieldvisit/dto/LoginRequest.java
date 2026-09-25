@@ -16,6 +16,10 @@ public class LoginRequest {
 
     private String email;
 
+    private String emailOrEmployeeNumber;
+
+    private String employeeNo;
+
     @NotBlank(message = "Password is required")
     private String password;
 
@@ -25,6 +29,12 @@ public class LoginRequest {
         }
         if (email != null && !email.isBlank()) {
             return email.trim();
+        }
+        if (emailOrEmployeeNumber != null && !emailOrEmployeeNumber.isBlank()) {
+            return emailOrEmployeeNumber.trim();
+        }
+        if (employeeNo != null && !employeeNo.isBlank()) {
+            return employeeNo.trim();
         }
         return "";
     }
