@@ -438,7 +438,7 @@ export const LoginPage: React.FC = () => {
                   </Button>
                 </form>
 
-                <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid #E2E8F0', textAlign: 'center' }}>
+                {/* <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid #E2E8F0', textAlign: 'center' }}>
                   <Typography variant="caption" color="text.secondary">
                     Need Swagger API documentation?{' '}
                     <Typography
@@ -452,7 +452,7 @@ export const LoginPage: React.FC = () => {
                       Open Swagger UI
                     </Typography>
                   </Typography>
-                </Box>
+                </Box> */}
               </CardContent>
             </Card>
           </Grid>
