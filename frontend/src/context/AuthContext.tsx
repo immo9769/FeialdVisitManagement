@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import api from '../services/api';
 
 export interface User {
@@ -16,10 +16,19 @@ export interface User {
   mobileNo?: string | null;
 }
 
+export interface MicrosoftAuthPayload {
+  idToken?: string;
+  accessToken?: string;
+  email?: string;
+  name?: string;
+  azureAdOid?: string;
+}
+
 interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (username: string, password: string) => Promise<void>;
+  loginWithMicrosoft: (payload: MicrosoftAuthPayload) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
   loading: boolean;
@@ -39,11 +48,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       const res: any = await api.post('/auth/login', { username, password });
-      const { accessToken, user: userData } = res;
-      setToken(accessToken);
+      const { accessToken, token: fallbackToken, user: userData } = res;
+      const validToken = accessToken || fallbackToken;
+      setToken(validToken);
       setUser(userData);
-      localStorage.setItem('token', accessToken);
+      localStorage.setItem('token', validToken);
       localStorage.setItem('user', JSON.stringify(userData));
+      sessionStorage.removeItem('logged_out');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loginWithMicrosoft = async (payload: MicrosoftAuthPayload) => {
+    setLoading(true);
+    try {
+      const res: any = await api.post('/auth/azure', payload);
+      const { accessToken, token: fallbackToken, user: userData } = res;
+      const validToken = accessToken || fallbackToken;
+      setToken(validToken);
+      setUser(userData);
+      localStorage.setItem('token', validToken);
+      localStorage.setItem('user', JSON.stringify(userData));
+      sessionStorage.removeItem('logged_out');
     } finally {
       setLoading(false);
     }
@@ -54,6 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    sessionStorage.setItem('logged_out', 'true');
   };
 
   return (
@@ -62,6 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         token,
         login,
+        loginWithMicrosoft,
         logout,
         isAuthenticated: !!token && !!user,
         loading,

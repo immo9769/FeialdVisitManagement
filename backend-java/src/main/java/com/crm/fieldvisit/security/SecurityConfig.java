@@ -60,7 +60,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/auth/login").permitAll()
+                        .requestMatchers("/api/auth/login", "/api/auth/azure", "/api/auth/microsoft").permitAll()
                         .requestMatchers("/api/health/**").permitAll()
                         .requestMatchers("/api/db/**").permitAll()
                         .requestMatchers("/api/docs", "/api/docs/**", "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()

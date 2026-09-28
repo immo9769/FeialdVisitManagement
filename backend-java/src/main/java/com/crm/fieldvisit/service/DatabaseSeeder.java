@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -215,23 +216,24 @@ public class DatabaseSeeder implements CommandLineRunner {
                 ));
             }
 
-            if (empRepo.count() == 0) {
-                log.info("Seeding Initial Employees...");
-                Department deptSales = deptRepo.findByCode("DEPT-SALES").orElse(null);
-                Department deptService = deptRepo.findByCode("DEPT-SERVICE").orElse(null);
-                Department deptMgmt = deptRepo.findByCode("DEPT-MGMT").orElse(null);
+            // Always ensure core admin, demo users, and Microsoft owner accounts exist and have Password@123
+            String hash = passwordEncoder.encode("Password@123");
+            Department deptSales = deptRepo.findByCode("DEPT-SALES").orElse(null);
+            Department deptService = deptRepo.findByCode("DEPT-SERVICE").orElse(null);
+            Department deptMgmt = deptRepo.findByCode("DEPT-MGMT").orElse(null);
 
-                Designation desgSE = desgRepo.findByCode("DESG-SE").orElse(null);
-                Designation desgSENG = desgRepo.findByCode("DESG-SENG").orElse(null);
-                Designation desgBM = desgRepo.findByCode("DESG-BM").orElse(null);
-                Designation desgAdmin = desgRepo.findByCode("DESG-ADMIN").orElse(null);
+            Designation desgSE = desgRepo.findByCode("DESG-SE").orElse(null);
+            Designation desgSENG = desgRepo.findByCode("DESG-SENG").orElse(null);
+            Designation desgBM = desgRepo.findByCode("DESG-BM").orElse(null);
+            Designation desgAdmin = desgRepo.findByCode("DESG-ADMIN").orElse(null);
 
-                Branch brMumbai = branchRepo.findByCode("BR-MUMBAI").orElse(null);
-                Branch brBaroda = branchRepo.findByCode("BR-BARODA").orElse(null);
+            Branch brMumbai = branchRepo.findByCode("BR-MUMBAI").orElse(null);
+            Branch brBaroda = branchRepo.findByCode("BR-BARODA").orElse(null);
 
-                String hash = passwordEncoder.encode("Password@123");
-
-                Employee admin = Employee.builder()
+            // 1. System Administrator (admin@crm.com)
+            Optional<Employee> adminOpt = empRepo.findByEmail("admin@crm.com");
+            if (adminOpt.isEmpty()) {
+                empRepo.save(Employee.builder()
                         .employeeNo("1000")
                         .name("System Administrator")
                         .gender("Male")
@@ -246,9 +248,46 @@ public class DatabaseSeeder implements CommandLineRunner {
                         .passwordHash(hash)
                         .role("ADMIN")
                         .grade("GRADE_A")
-                        .build();
+                        .build());
+            } else {
+                Employee admin = adminOpt.get();
+                admin.setPasswordHash(hash);
+                admin.setStatus("Active");
+                admin.setRole("ADMIN");
+                empRepo.save(admin);
+            }
 
-                Employee suresh = Employee.builder()
+            // 2. Microsoft Entra ID Owner Account (iqratech7@gmail.com)
+            Optional<Employee> iqraOpt = empRepo.findByEmail("iqratech7@gmail.com");
+            if (iqraOpt.isEmpty()) {
+                empRepo.save(Employee.builder()
+                        .employeeNo("1099")
+                        .name("Iqra Tech Admin")
+                        .gender("Female")
+                        .dob(LocalDate.of(1990, 1, 1))
+                        .departmentId(deptMgmt != null ? deptMgmt.getId() : 1)
+                        .designationId(desgAdmin != null ? desgAdmin.getId() : 1)
+                        .branchId(brMumbai != null ? brMumbai.getId() : 1)
+                        .joiningDate(LocalDate.of(2020, 1, 1))
+                        .status("Active")
+                        .mobileNo("9999999998")
+                        .email("iqratech7@gmail.com")
+                        .passwordHash(hash)
+                        .role("ADMIN")
+                        .grade("GRADE_A")
+                        .build());
+            } else {
+                Employee iqra = iqraOpt.get();
+                iqra.setPasswordHash(hash);
+                iqra.setStatus("Active");
+                iqra.setRole("ADMIN");
+                empRepo.save(iqra);
+            }
+
+            // 3. Service Engineer (suresh@crm.com)
+            Optional<Employee> sureshOpt = empRepo.findByEmail("suresh@crm.com");
+            if (sureshOpt.isEmpty()) {
+                empRepo.save(Employee.builder()
                         .employeeNo("1001")
                         .name("Suresh Choudhary")
                         .gender("Male")
@@ -263,9 +302,18 @@ public class DatabaseSeeder implements CommandLineRunner {
                         .passwordHash(hash)
                         .role("SERVICE_ENG")
                         .grade("GRADE_B")
-                        .build();
+                        .build());
+            } else {
+                Employee s = sureshOpt.get();
+                s.setPasswordHash(hash);
+                s.setStatus("Active");
+                empRepo.save(s);
+            }
 
-                Employee amit = Employee.builder()
+            // 4. Sales Executive (amit@crm.com)
+            Optional<Employee> amitOpt = empRepo.findByEmail("amit@crm.com");
+            if (amitOpt.isEmpty()) {
+                empRepo.save(Employee.builder()
                         .employeeNo("1002")
                         .name("Amit Sharma")
                         .gender("Male")
@@ -280,9 +328,18 @@ public class DatabaseSeeder implements CommandLineRunner {
                         .passwordHash(hash)
                         .role("SALES_EXEC")
                         .grade("GRADE_B")
-                        .build();
+                        .build());
+            } else {
+                Employee a = amitOpt.get();
+                a.setPasswordHash(hash);
+                a.setStatus("Active");
+                empRepo.save(a);
+            }
 
-                Employee rajesh = Employee.builder()
+            // 5. Branch Manager (rajesh@crm.com)
+            Optional<Employee> rajeshOpt = empRepo.findByEmail("rajesh@crm.com");
+            if (rajeshOpt.isEmpty()) {
+                empRepo.save(Employee.builder()
                         .employeeNo("1003")
                         .name("Rajesh Patel")
                         .gender("Male")
@@ -297,30 +354,20 @@ public class DatabaseSeeder implements CommandLineRunner {
                         .passwordHash(hash)
                         .role("MANAGER")
                         .grade("GRADE_A")
-                        .build();
-
-                empRepo.saveAll(List.of(admin, suresh, amit, rajesh));
+                        .build());
+            } else {
+                Employee r = rajeshOpt.get();
+                r.setPasswordHash(hash);
+                r.setStatus("Active");
+                empRepo.save(r);
             }
 
             // Seed additional multi-role employees for comprehensive user role testing
             if (empRepo.findByEmail("priya@crm.com").isEmpty()) {
                 log.info("Seeding extended multi-role employee testing dataset...");
-                Department deptSales = deptRepo.findByCode("DEPT-SALES").orElse(null);
-                Department deptService = deptRepo.findByCode("DEPT-SERVICE").orElse(null);
-                Department deptMgmt = deptRepo.findByCode("DEPT-MGMT").orElse(null);
-
-                Designation desgSE = desgRepo.findByCode("DESG-SE").orElse(null);
-                Designation desgSENG = desgRepo.findByCode("DESG-SENG").orElse(null);
-                Designation desgBM = desgRepo.findByCode("DESG-BM").orElse(null);
-                Designation desgAdmin = desgRepo.findByCode("DESG-ADMIN").orElse(null);
-
-                Branch brMumbai = branchRepo.findByCode("BR-MUMBAI").orElse(null);
-                Branch brBaroda = branchRepo.findByCode("BR-BARODA").orElse(null);
                 Branch brAhmedabad = branchRepo.findByCode("BR-AHMEDABAD").orElse(null);
                 Branch brPune = branchRepo.findByCode("BR-PUNE").orElse(null);
                 Branch brNashik = branchRepo.findByCode("BR-NASHIK").orElse(null);
-
-                String hash = passwordEncoder.encode("Password@123");
 
                 List<Employee> extraEmployees = List.of(
                         // Additional Sales Executives

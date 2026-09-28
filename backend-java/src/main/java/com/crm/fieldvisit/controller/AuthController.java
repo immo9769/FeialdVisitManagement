@@ -3,6 +3,7 @@ package com.crm.fieldvisit.controller;
 import com.crm.fieldvisit.common.ApiResponse;
 import com.crm.fieldvisit.dto.LoginRequest;
 import com.crm.fieldvisit.dto.LoginResponse;
+import com.crm.fieldvisit.dto.MicrosoftLoginRequest;
 import com.crm.fieldvisit.security.UserPrincipal;
 import com.crm.fieldvisit.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -26,6 +27,13 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse response = authService.login(request);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @Operation(summary = "Login with Microsoft Entra ID (Azure AD) SSO")
+    @PostMapping({"/azure", "/microsoft"})
+    public ResponseEntity<ApiResponse<LoginResponse>> loginWithMicrosoft(@RequestBody MicrosoftLoginRequest request) {
+        LoginResponse response = authService.loginWithMicrosoft(request);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
