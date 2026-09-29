@@ -16,6 +16,8 @@ public interface EmployeeRepository extends JpaRepository<Employee, Integer> {
 
     Optional<Employee> findByEmployeeNo(String employeeNo);
 
+    Optional<Employee> findByAzureAdOid(String azureAdOid);
+
     @Query("SELECT e FROM Employee e WHERE e.email = :username OR e.employeeNo = :username")
     Optional<Employee> findByEmailOrEmployeeNo(@Param("username") String username);
 

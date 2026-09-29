@@ -72,6 +72,9 @@ public class Employee {
     @Column(nullable = false, unique = true, length = 150)
     private String email;
 
+    @Column(name = "azure_ad_oid", length = 100)
+    private String azureAdOid;
+
     @JsonIgnore
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;

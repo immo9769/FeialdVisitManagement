@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
@@ -65,7 +66,9 @@ public class AuthService {
     }
 
     /**
-     * Authenticates user using Microsoft Entra ID (Azure AD) OIDC token / claims
+     * Authenticates user using Microsoft Entra ID (Azure AD) OIDC token / claims.
+     * Maps to existing Employee or auto-provisions a new Employee with initial SERVICE_ENG role.
+     * The Employee table remains the single source of truth for roles and permissions.
      */
     @Transactional
     public LoginResponse loginWithMicrosoft(MicrosoftLoginRequest request) {
@@ -73,7 +76,7 @@ public class AuthService {
         String extractedName = request.getName();
         String extractedOid = request.getAzureAdOid();
 
-        // 1. Try extracting verified claims from Microsoft ID Token
+        // 1. Extract verified identity claims from Microsoft ID Token
         if (request.getIdToken() != null && !request.getIdToken().isBlank()) {
             try {
                 String[] parts = request.getIdToken().split("\\.");
@@ -82,7 +85,6 @@ public class AuthService {
                     String payloadJson = new String(payloadBytes, StandardCharsets.UTF_8);
                     JsonNode claims = objectMapper.readTree(payloadJson);
 
-                    // Extract user principal claims in order of reliability
                     if (claims.hasNonNull("preferred_username")) {
                         targetEmail = claims.get("preferred_username").asText().trim();
                     } else if (claims.hasNonNull("email")) {
@@ -100,14 +102,14 @@ public class AuthService {
                         extractedOid = claims.get("oid").asText().trim();
                     }
 
-                    log.info("Microsoft Entra ID token parsed successfully for email: {}, oid: {}", targetEmail, extractedOid);
+                    log.info("Microsoft Entra ID token parsed for email: {}, oid: {}", targetEmail, extractedOid);
                 }
             } catch (Exception e) {
                 log.warn("Failed to parse Microsoft idToken payload: {}", e.getMessage());
             }
         }
 
-        // 2. Fallback to direct email field if provided
+        // Fallback to email in request body if not in token
         if ((targetEmail == null || targetEmail.isBlank()) && request.getEmail() != null) {
             targetEmail = request.getEmail().trim();
         }
@@ -116,14 +118,20 @@ public class AuthService {
             throw new BadCredentialsException("Could not determine user email from Microsoft Entra identity.");
         }
 
-        // 3. Match user in Employee database
-        Optional<Employee> optionalEmployee = employeeRepository.findByEmail(targetEmail);
+        // 2. Lookup existing employee:
+        // Priority A: Match by Entra ID unique Object ID (OID)
+        Optional<Employee> optionalEmployee = Optional.empty();
+        if (extractedOid != null && !extractedOid.isBlank()) {
+            optionalEmployee = employeeRepository.findByAzureAdOid(extractedOid);
+        }
 
+        // Priority B: Match by Email / EmployeeNo
+        if (optionalEmployee.isEmpty()) {
+            optionalEmployee = employeeRepository.findByEmail(targetEmail);
+        }
         if (optionalEmployee.isEmpty()) {
             optionalEmployee = employeeRepository.findByEmailOrEmployeeNo(targetEmail);
         }
-
-        // Case-insensitive fallback lookup
         if (optionalEmployee.isEmpty()) {
             final String finalEmail = targetEmail.toLowerCase();
             List<Employee> allEmployees = employeeRepository.findAll();
@@ -134,64 +142,70 @@ public class AuthService {
         }
 
         Integer serviceDeptId = departmentRepository.findByCode("DEPT-SERVICE")
-                .map(com.crm.fieldvisit.entity.Department::getId)
+                .map(Department::getId)
                 .orElse(2);
         Integer serviceDesgId = designationRepository.findByCode("DESG-SENG")
-                .map(com.crm.fieldvisit.entity.Designation::getId)
+                .map(Designation::getId)
                 .orElse(2);
         Integer hqBranchId = branchRepository.findByCode("BR-MUMBAI")
-                .map(com.crm.fieldvisit.entity.Branch::getId)
+                .map(Branch::getId)
                 .orElse(1);
 
-        // Auto-provision verified Microsoft user if not yet registered in Employee DB
+        // 3. First-Login Auto-Provisioning:
+        // If user does not exist in Employee table, create a new employee record with initial default SERVICE_ENG role
         if (optionalEmployee.isEmpty()) {
-            log.info("Microsoft Entra user not found in CRM. Auto-provisioning employee profile for: {}", targetEmail);
+            log.info("Microsoft Entra user not found in Employee master. Auto-provisioning first-login record for: {}", targetEmail);
             String displayName = (extractedName != null && !extractedName.isBlank()) ? extractedName : targetEmail.split("@")[0];
-            String empNo = "MS-" + (1000 + Math.abs(targetEmail.hashCode() % 9000));
+            String empNo = "EMP-" + (1000 + Math.abs(targetEmail.hashCode() % 9000));
+            
             Employee newEmp = Employee.builder()
                     .employeeNo(empNo)
                     .name(displayName)
                     .email(targetEmail)
+                    .azureAdOid(extractedOid)
                     .status("Active")
-                    .role("SERVICE_ENG")
+                    .role("SERVICE_ENG") // Initial default role as Service Person / Engineer
                     .grade("GRADE_B")
                     .gender("Male")
-                    .dob(java.time.LocalDate.of(1990, 1, 1))
-                    .mobileNo("98" + String.format("%08d", Math.abs(targetEmail.hashCode() % 100000000)))
+                    .dob(LocalDate.of(1990, 1, 1))
+                    .mobileNo("N/A")
                     .departmentId(serviceDeptId)
                     .designationId(serviceDesgId)
                     .branchId(hqBranchId)
-                    .passwordHash(passwordEncoder.encode("Password@123"))
-                    .joiningDate(java.time.LocalDate.now())
+                    .passwordHash(passwordEncoder.encode(java.util.UUID.randomUUID().toString()))
+                    .joiningDate(LocalDate.now())
+                    .createdBy("ENTRA_ID_SSO")
+                    .updatedBy("ENTRA_ID_SSO")
                     .build();
+
             try {
                 newEmp = employeeRepository.save(newEmp);
                 optionalEmployee = Optional.of(newEmp);
+                log.info("Auto-provisioned new employee #{} ({}) with default role SERVICE_ENG", newEmp.getEmployeeNo(), newEmp.getEmail());
             } catch (Exception e) {
-                log.error("Failed to auto-provision Microsoft employee: {}", e.getMessage());
-                throw new BadCredentialsException("Failed to register Microsoft account: " + e.getMessage());
+                log.error("Failed to auto-provision employee: {}", e.getMessage());
+                throw new BadCredentialsException("Failed to register Microsoft account in employee directory: " + e.getMessage());
             }
         }
 
         Employee employee = optionalEmployee.get();
 
-        // Assign SERVICE_ENG role and Service department for Microsoft Entra accounts
-        if ("ImranAhmed@iqratechnology.com".equalsIgnoreCase(employee.getEmail()) || "mullaimran057@gmail.com".equalsIgnoreCase(employee.getEmail())) {
-            employee.setRole("SERVICE_ENG");
-            employee.setDepartmentId(serviceDeptId);
-            employee.setDesignationId(serviceDesgId);
-            employee.setBranchId(hqBranchId);
-            employee.setGrade("GRADE_B");
+        // 4. Map & link Entra ID Object ID to existing employee if not linked yet
+        if (extractedOid != null && !extractedOid.isBlank() && !extractedOid.equals(employee.getAzureAdOid())) {
+            employee.setAzureAdOid(extractedOid);
             employee = employeeRepository.save(employee);
+            log.info("Mapped Microsoft Entra OID {} to employee #{} ({})", extractedOid, employee.getEmployeeNo(), employee.getEmail());
         }
 
+        // 5. Enforce Active status from Employee table
         if (employee.getStatus() != null && !"Active".equalsIgnoreCase(employee.getStatus())) {
-            throw new BadCredentialsException("Your employee account is inactive. Please contact administrator.");
+            throw new BadCredentialsException("Your employee account is currently inactive. Please contact your system administrator.");
         }
 
-        log.info("Microsoft Entra ID login successful for employee: {} ({}) with role: {}", 
+        log.info("Microsoft Entra SSO login successful for employee: {} ({}) with internal Employee Table role: {}", 
                 employee.getName(), employee.getEmail(), employee.getRole());
 
+        // Note: The Employee table is the single source of truth. The role returned in JWT is whatever is currently set in the Employee table!
         return buildLoginResponse(employee);
     }
 
